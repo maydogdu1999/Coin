@@ -5,12 +5,14 @@ import java.io.*;
 
 public class Node {
 
-    private ArrayList<String> neighbors; //an array of Strings containing the IP addresses of the Node's neighbors.
+    //private ArrayList<String> neighbors = new ArrayList<String>(); //an array of Strings containing the IP addresses of the Node's neighbors.
     private HashMap<Connection, HashMap<String, String>> connections = new HashMap<Connection, HashMap<String, String>>();
     //a hashmap of the format {conn1: {"IP": someIp, "connType": "Client/Server"}, conn2...etc}
 
     //connection socket
     private ServerSocket serv = null; 
+
+    public Node () {}
 
     //method that starts server
     public void startServer(int port) {
@@ -23,7 +25,7 @@ public class Node {
             serv = new ServerSocket(port);
 
             //while less than 10 neighbors, accept new connections 
-            while (neighbors.size() <= 10) {
+            while (connections.size() <= 10) {
 
                 socket = serv.accept();
 
@@ -86,12 +88,6 @@ public class Node {
         String ipString = inaddr.toString();
         return ipString;
     }
-
-
-
-
-
-
 
 
 }

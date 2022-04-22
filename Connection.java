@@ -19,9 +19,9 @@ public class Connection extends Thread{
 
         try {
 
-        input = new DataInputStream(sock.getInputStream());
+            input = new DataInputStream(new BufferedInputStream(sock.getInputStream()));
 
-        output = new DataOutputStream(sock.getOutputStream());
+            output = new DataOutputStream(new BufferedOutputStream(sock.getOutputStream()));
 
         }
 
@@ -32,6 +32,32 @@ public class Connection extends Thread{
         }
 
         System.out.println("Started Connection!");
+
+        
+        String line = "";
+        while (!line.equals("Over")) {
+            try {
+                line = input.readUTF();
+                System.out.println(line);
+            }
+            catch(IOException i) {
+                System.out.println(i);
+            }
+        }
+        System.out.println("Closing connection");
+ 
+        // close connection
+        try {
+            sock.close();
+            input.close();
+            output.close();
+        }
+
+        catch (IOException e) {
+
+            System.out.println(e);
+
+        }
 
 
 
