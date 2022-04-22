@@ -5,9 +5,9 @@ import java.io.*;
 
 public class Node {
 
-
-
-    ArrayList<String> neighbors; //an array of Strings containing the IP addresses of the Node's neighbors.
+    private ArrayList<String> neighbors; //an array of Strings containing the IP addresses of the Node's neighbors.
+    private HashMap<Connection, HashMap<String, String>> connections = new HashMap<>();
+    //a hashmap of the format {conn1: {"IP": someIp, "connType": "Client/Server"}, conn2...etc}
 
     //connection socket
     private ServerSocket serv = null; 
@@ -30,6 +30,13 @@ public class Node {
                 Connection conn = new Connection(socket);
 
                 conn.start();
+            
+                //put the new client connection into connections
+                String ipNeighbor = getIpFromSocket(socket);
+                HashMap<String, String> infoConn = new HashMap<>();
+                infoConn.put("IP", ipNeighbor);
+                infoConn.put("connType", "Client");
+                connections.put(conn, infoConn);
 
             }
     
@@ -55,6 +62,13 @@ public class Node {
             Connection conn = new Connection(socket);
 
             conn.start();
+
+            //put the new server connection into connections
+            HashMap<String, String> infoConn = new HashMap<>();
+            infoConn.put("IP", ip);
+            infoConn.put("connType", "Server");
+            connections.put(conn, infoConn);
+
         }
 
         catch (IOException e) {
@@ -65,6 +79,15 @@ public class Node {
 
 
     }
+    //given a socket, return the other sides ip address as string
+    public String getIpFromSocket(Socket socketName) {
+        InetSocketAddress sockaddr = (InetSocketAddress)socketName.getRemoteSocketAddress();
+        InetAddress inaddr = sockaddr.getAddress();
+        String ipString = inaddr.toString();
+        return ipString;
+    }
+
+
 
 
 
