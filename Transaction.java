@@ -1,15 +1,16 @@
 public class Transaction {
 
-    private int month;
-    private int day;
-    private int year;
-    private int hour;
-    private int sec;
-    private double amount;
+    private String month;
+    private String day;
+    private String year;
+    private String hour;
+    private String sec;
+    private String amount;
     private String sender; //sender public key
     private String recipient; //recipient public key
 
-    public Transaction(int month, int day, int year, int hour, int sec, double amount, String sender, String sender) {
+    
+    public Transaction(String month, String day, String year, String hour, String sec, String amount, String sender, String recipient) {
         this.month = month;
         this.day = day;
         this.year = year;
@@ -21,7 +22,7 @@ public class Transaction {
     }
 
     public String transactionInfo() {
-        String info = str(month) + "-" + str(day) + "-" + str(year) + "-" + str(hour) + "-" + str(sec) + "-" + str(amount) + "-" + sender + "-" + recipient;
+        String info = month + "-" + day + "-" + year + "-" + hour + "-" + sec + "-" + amount + "-" + sender + "-" + recipient;
         return info;
     }
 

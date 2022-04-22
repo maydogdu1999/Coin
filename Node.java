@@ -6,7 +6,7 @@ import java.io.*;
 public class Node {
 
     private ArrayList<String> neighbors; //an array of Strings containing the IP addresses of the Node's neighbors.
-    private HashMap<Connection, HashMap<String, String>> connections = new HashMap<>();
+    private HashMap<Connection, HashMap<String, String>> connections = new HashMap<Connection, HashMap<String, String>>();
     //a hashmap of the format {conn1: {"IP": someIp, "connType": "Client/Server"}, conn2...etc}
 
     //connection socket
@@ -33,7 +33,7 @@ public class Node {
             
                 //put the new client connection into connections
                 String ipNeighbor = getIpFromSocket(socket);
-                HashMap<String, String> infoConn = new HashMap<>();
+                HashMap<String, String> infoConn = new HashMap<String, String>();
                 infoConn.put("IP", ipNeighbor);
                 infoConn.put("connType", "Client");
                 connections.put(conn, infoConn);
@@ -64,7 +64,7 @@ public class Node {
             conn.start();
 
             //put the new server connection into connections
-            HashMap<String, String> infoConn = new HashMap<>();
+            HashMap<String, String> infoConn = new HashMap<String, String>();
             infoConn.put("IP", ip);
             infoConn.put("connType", "Server");
             connections.put(conn, infoConn);
