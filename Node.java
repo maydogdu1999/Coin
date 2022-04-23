@@ -23,7 +23,7 @@ public class Node {
         try
         {
             serv = new ServerSocket(port);
-            String ownIp = InetAddress.getLocalHost().toString();
+            String ownIp = InetAddress.getLocalHost().toString().split("/")[1];
             System.out.println("populating neighbiors for own ip: " + ownIp);
             populateNeighbors(ownIp, port, 1);
             //while less than 10 neighbors, accept new connections 
@@ -88,7 +88,7 @@ public class Node {
     public String getIpFromSocket(Socket socketName) {
         InetSocketAddress sockaddr = (InetSocketAddress)socketName.getRemoteSocketAddress();
         InetAddress inaddr = sockaddr.getAddress();
-        String ipString = inaddr.toString();
+        String ipString = inaddr.toString().split("/")[1];
         return ipString;
     }
 
@@ -105,6 +105,7 @@ public class Node {
         for (Connection connection: connections.keySet()) {
             String message = "populateNeighbors--" + ip + "--" + String.valueOf(port) + "--" + String.valueOf(counter);
             connection.sendMessage(message);
+            System.out.println("popu from node for conn " + connection.toString());
         }
     }
 

@@ -102,10 +102,11 @@ public class Connection extends Thread{
             source.connectToPeer(ip, port);
         } 
 
-        else if (counter < MAX_DEGREES){
+        if (counter < MAX_DEGREES){
+            System.out.println("popu from conn");
             source.populateNeighbors(ip, port, counter++);
         }
-        
+
         else {
             System.out.println("max degrees reached");
         }
