@@ -29,7 +29,7 @@ public class Node {
             //while less than 10 neighbors, accept new connections 
             while (true) {
 
-                if (connections.size() < MAX_NEIGHBORS) {
+                if (connections.size() < MAX_NEIGHBORS - 1) {
                     socket = serv.accept();
 
                     Connection conn = new Connection(socket, this);

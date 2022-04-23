@@ -52,6 +52,8 @@ public class Connection extends Thread{
         }
 
         if (source.removeConnection(this)) {
+            System.out.print("after removed " + source.getConnections().keySet());
+
             System.out.println("removed conn successfully");
         }
         else {
@@ -76,7 +78,7 @@ public class Connection extends Thread{
     }
 
     public void sendMessage(String message) {
-                  
+        System.out.println(output);
         try {
             output.writeUTF(message);
             output.flush();
@@ -92,6 +94,7 @@ public class Connection extends Thread{
         System.out.println("here in cnnection parsemessage");
         System.out.println(parsedMessage[0]);
         if (parsedMessage[0].equals("populateNeighbors")) {
+
             String ip = parsedMessage[1];
             int port = Integer.parseInt(parsedMessage[2]);
             int counter = Integer.parseInt(parsedMessage[3]);
@@ -99,13 +102,14 @@ public class Connection extends Thread{
         }
     }
     public void handlePopulateNeighbors(String ip, int port, int counter) {
+        System.out.println("here in connection handlepopulateneighbors");
         if (source.getConnections().size() < source.getMaxNeighbors()) {
             source.connectToPeer(ip, port);
         } 
 
         if (counter < MAX_DEGREES){
             System.out.println("popu from conn");
-            source.populateNeighbors(ip, port, counter++);
+            source.populateNeighbors(ip, port, ++counter);
         }
 
         else {
