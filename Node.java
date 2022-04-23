@@ -102,6 +102,7 @@ public class Node {
     }
 
     public void populateNeighbors(String ip, int port, int counter) {
+        System.out.println("here in nide popu neighbors");
         for (Connection connection: connections.keySet()) {
             String message = "populateNeighbors--" + ip + "--" + String.valueOf(port) + "--" + String.valueOf(counter);
             connection.sendMessage(message);

@@ -89,8 +89,9 @@ public class Connection extends Thread{
     public void parseMessage(String message) {
 
         String[] parsedMessage = message.split("--");
-
-        if (parsedMessage[0] == "populateNeighbors") {
+        System.out.println("here in cnnection parsemessage");
+        System.out.println(parsedMessage[0]);
+        if (parsedMessage[0].equals("populateNeighbors")) {
             String ip = parsedMessage[1];
             int port = Integer.parseInt(parsedMessage[2]);
             int counter = Integer.parseInt(parsedMessage[3]);
