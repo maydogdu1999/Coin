@@ -35,7 +35,7 @@ public class Connection extends Thread{
 
         
         String line = "";
-        while (!line.equals("Over")) {
+        while (!line.equals("Close connection")) {
             try {
                 line = input.readUTF();
                 System.out.println(line);
@@ -59,8 +59,15 @@ public class Connection extends Thread{
 
         }
 
+    }
 
-
+    public void sendMessage(String message) {
+        try {
+            output.writeUTF(message);
+        }
+        catch (IOException e) {
+            System.out.println(e);
+        }
     }
 
 

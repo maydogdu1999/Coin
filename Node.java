@@ -39,6 +39,7 @@ public class Node {
                 infoConn.put("IP", ipNeighbor);
                 infoConn.put("connType", "Client");
                 connections.put(conn, infoConn);
+                System.out.println("connected to:" + ipNeighbor);
 
             }
     
@@ -70,6 +71,8 @@ public class Node {
             infoConn.put("IP", ip);
             infoConn.put("connType", "Server");
             connections.put(conn, infoConn);
+            System.out.println("connected to:" + ip);
+
 
         }
 
