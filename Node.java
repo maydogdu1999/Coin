@@ -4,10 +4,10 @@ import java.io.*;
 
 
 public class Node {
+    static final int MAX_NEIGHBORS = 3;
 
     //private ArrayList<String> neighbors = new ArrayList<String>(); //an array of Strings containing the IP addresses of the Node's neighbors.
-    private HashMap<Connection, HashMap<String, String>> connections = new HashMap<Connection, HashMap<String, String>>();
-    //a hashmap of the format {conn1: {"IP": someIp, "connType": "Client/Server"}, conn2...etc}
+    HashMap<Connection, String> connections = new HashMap<Connection,String>();
 
     //connection socket
     private ServerSocket serv = null; 
@@ -23,24 +23,26 @@ public class Node {
         try
         {
             serv = new ServerSocket(port);
-
+            String ownIp = InetAddress.getLocalHost().toString();
+            System.out.println("populating neighbiors for own ip: " + ownIp);
+            populateNeighbors(ownIp, port, 1);
             //while less than 10 neighbors, accept new connections 
-            while (connections.size() <= 10) {
+            while (true) {
 
-                socket = serv.accept();
+                if (connections.size() < MAX_NEIGHBORS) {
+                    socket = serv.accept();
 
-                Connection conn = new Connection(socket);
+                    Connection conn = new Connection(socket, this);
 
-                conn.start();
+                    conn.start();
             
-                //put the new client connection into connections
-                String ipNeighbor = getIpFromSocket(socket);
-                HashMap<String, String> infoConn = new HashMap<String, String>();
-                infoConn.put("IP", ipNeighbor);
-                infoConn.put("connType", "Client");
-                connections.put(conn, infoConn);
-                System.out.println("connected to:" + ipNeighbor);
-
+                    //put the new client connection into connections
+                    String ipNeighbor = getIpFromSocket(socket);
+                    connections.put(conn, ipNeighbor);
+                    System.out.println(connections.values());
+                    System.out.println("connected to:" + ipNeighbor);
+                }
+                
             }
     
         }
@@ -62,17 +64,15 @@ public class Node {
         {
             socket = new Socket(ip, port);
 
-            Connection conn = new Connection(socket);
+            Connection conn = new Connection(socket, this);
 
             conn.start();
 
             //put the new server connection into connections
-            HashMap<String, String> infoConn = new HashMap<String, String>();
-            infoConn.put("IP", ip);
-            infoConn.put("connType", "Server");
-            connections.put(conn, infoConn);
-            System.out.println("connected to:" + ip);
+            connections.put(conn, ip);
+            System.out.println(connections.values());
 
+            System.out.println("connected to:" + ip);
 
         }
 
@@ -90,6 +90,26 @@ public class Node {
         InetAddress inaddr = sockaddr.getAddress();
         String ipString = inaddr.toString();
         return ipString;
+    }
+
+    public HashMap<Connection, String> getConnections() {
+        return connections;
+    }
+
+    public Boolean removeConnection(Connection connection) {
+        return (connections.remove(connection) != null);
+
+    }
+
+    public void populateNeighbors(String ip, int port, int counter) {
+        for (Connection connection: connections.keySet()) {
+            String message = "populateNeighbors--" + ip + "--" + String.valueOf(port) + "--" + String.valueOf(counter);
+            connection.sendMessage(message);
+        }
+    }
+
+    public int getMaxNeighbors() {
+        return MAX_NEIGHBORS;
     }
 
 

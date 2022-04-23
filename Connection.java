@@ -1,18 +1,21 @@
 import java.net.*;
 import java.io.*;
 
+
 public class Connection extends Thread{
+    static final int MAX_DEGREES = 3;
 
     private DataInputStream input = null;
 
     private DataOutputStream output = null;
 
     private Socket sock = null;
+    private Node source = null;
 
-    public Connection(Socket s) {
+    public Connection(Socket s, Node source) {
 
         sock = s;
-
+        this.source = source;
     }
     
     public void run(){
@@ -39,11 +42,22 @@ public class Connection extends Thread{
             try {
                 line = input.readUTF();
                 System.out.println(line);
+                parseMessage(line);
+                
             }
             catch(IOException i) {
                 System.out.println(i);
+                break;
             }
         }
+
+        if (source.removeConnection(this)) {
+            System.out.println("removed conn successfully");
+        }
+        else {
+            System.out.println("couldn't remove conn");
+        }
+
         System.out.println("Closing connection");
  
         // close connection
@@ -62,12 +76,40 @@ public class Connection extends Thread{
     }
 
     public void sendMessage(String message) {
+                  
         try {
             output.writeUTF(message);
+            output.flush();
         }
         catch (IOException e) {
             System.out.println(e);
         }
+    }
+
+    public void parseMessage(String message) {
+
+        String[] parsedMessage = message.split("--");
+
+        if (parsedMessage[0] == "populateNeighbors") {
+            String ip = parsedMessage[1];
+            int port = Integer.parseInt(parsedMessage[2]);
+            int counter = Integer.parseInt(parsedMessage[3]);
+            handlePopulateNeighbors(ip, port, counter);
+        }
+    }
+    public void handlePopulateNeighbors(String ip, int port, int counter) {
+        if (source.getConnections().size() < source.getMaxNeighbors()) {
+            source.connectToPeer(ip, port);
+        } 
+
+        else if (counter < MAX_DEGREES){
+            source.populateNeighbors(ip, port, counter++);
+        }
+        
+        else {
+            System.out.println("max degrees reached");
+        }
+
     }
 
 
