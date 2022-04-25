@@ -38,7 +38,15 @@ public class Driver {
         //new node object
         Node node1 = new Node();
 
-        //start the server on the given port
-        node1.startServer(hostPort, ip, neighborPort);
+        if (args.length == 1) {
+
+            node1.startServer(hostPort, "--", 0);
+
+        } else {
+
+            node1.startServer(hostPort, ip, neighborPort);
+
+        }
+
     }
 }
