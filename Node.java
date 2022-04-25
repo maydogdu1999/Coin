@@ -2,7 +2,7 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.*;
-
+import java.util.concurrent.TimeUnit;
 
 public class Node {
     static final int MAX_NEIGHBORS = 3;
@@ -34,8 +34,6 @@ public class Node {
 
             hostIp = InetAddress.getLocalHost().toString().split("/")[1];
 
-            
-
             this.populateNeighbors(hostIp, hostPort, 0);
             
             //System.out.println("populating neighbiors for own ip: " + ownIp);
@@ -56,8 +54,8 @@ public class Node {
                     //put the new client connection into connections
                     String ipNeighbor = getIpFromSocket(socket);
 
-                    addConnection(conn, ipNeighbor + "--" + socket.getPort());
-                    System.out.println("received a connection to:" + ipNeighbor + "at port: " + socket.getPort());
+                    addConnection(conn, ipNeighbor);
+                    System.out.println("received a connection to:" + ipNeighbor);
                     System.out.println(connections.values());
 
 
@@ -79,23 +77,24 @@ public class Node {
     public synchronized void connectToPeer(String ip, int port) {
 
         System.out.println("Starting connectToPeer...");
-
-        String connectionInfo = ip + "--" +String.valueOf(port);
+        
+       
         System.out.println("cur connections :" + connections.values());
         for (String connection: connections.values()) {
             //create properly formatted message
-            if(connection.equals(connectionInfo)) {
-                System.out.println("can't connect to the same ip at the same port twice");
+            if(connection.equals(ip)) {
+                System.out.println("can't connect to the same ip twice");
                 return;
             }
             
         }
 
-        if((hostIp + "--" + hostPort).equals(connectionInfo)) {
-            System.out.println("can't connect to self at the same port");
+        if(hostIp.equals(ip)) {
+            System.out.println("can't connect to self");
             return;
         }
-        System.out.println("is trying to connect to: " + connectionInfo);
+
+        System.out.println("is trying to connect to: " + ip);
 
 
         Socket socket = null;
@@ -117,8 +116,8 @@ public class Node {
             conn.start();
 
             //put the new server connection into connections
-            addConnection(conn, ip + "--" + port);
-
+            //addConnection(conn, ip + "--" + port);
+            addConnection(conn, ip);
 
             System.out.println("connected to:" + ip + " at port: " + port);
 
@@ -178,7 +177,14 @@ public class Node {
     }
 
     public void populateNeighbors(String ip, int port, int counter) {
-
+        
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } 
+        catch (Exception e) {
+            System.out.print(e);
+        }
+        
         System.out.println("Starting populate Neighbors...");
 
         System.out.print("connections while in populate neighbors: ");
@@ -202,6 +208,11 @@ public class Node {
     public String getHostIp() {
 
         return hostIp;
+
+    }
+    public void setHostIp(String hostIp) {
+
+        this.hostIp = hostIp;
 
     }
 

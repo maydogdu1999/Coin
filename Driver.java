@@ -37,7 +37,12 @@ public class Driver {
 
         //new node object
         Node node1 = new Node();
-
+        try {
+            node1.setHostIp(InetAddress.getLocalHost().toString().split("/")[1]);
+        }
+        catch (IOException e) {
+            System.out.println(e);
+        }
         //start the server on the given port
         if (!ip.equals("--")) {
             System.out.println("not 1st node");

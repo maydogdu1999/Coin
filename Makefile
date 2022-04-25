@@ -2,11 +2,10 @@
 
 default: Node.class Connection.class Transaction.class Driver.class
 
-Node.class: Node.java
-	javac Node.java
-
 Connection.class: Connection.java
 	javac Connection.java
+Node.class: Node.java
+	javac Node.java
 
 Transaction.class: Transaction.java
 	javac Transaction.java

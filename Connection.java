@@ -157,11 +157,11 @@ public class Connection extends Thread{
     public void handlePopulateNeighbors(String ip, int port, int counter) {
         System.out.println("here in connection handlepopulateneighbors");
 
-        Boolean isSelf = (ip.equals(source.getHostIp()) && port == source.getHostPort());
+        Boolean isSelf = (ip.equals(source.getHostIp()));
 
         if (isSelf) {
 
-            System.out.println("recieved own populate neighbors request...");
+            System.out.println("received own populate neighbors request...");
             return;
 
         }
