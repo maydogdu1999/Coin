@@ -155,7 +155,7 @@ public class Connection extends Thread{
      * @param counter: a counter representing the number of nodes that have forwarded this specific message. 
      */
     public void handlePopulateNeighbors(String ip, int port, int counter) {
-        System.out.println("here in connection handlepopulateneighbors");
+        System.out.println("here in connection handlePopulateNeighbors");
 
         Boolean isSelf = (ip.equals(source.getHostIp()));
 

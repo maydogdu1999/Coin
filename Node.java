@@ -4,8 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.io.*;
 import java.util.concurrent.TimeUnit;
 
-public class Node {
-    static final int MAX_NEIGHBORS = 3;
+public class Node extends Thread {
+    static final int MAX_NEIGHBORS = 5;
+    static final int IDEAL_NEIGHBORS = 3;
+
 
     //private ArrayList<String> neighbors = new ArrayList<String>(); //an array of Strings containing the IP addresses of the Node's neighbors.
     ConcurrentHashMap<Connection, String> connections = new ConcurrentHashMap<Connection,String>();
@@ -18,7 +20,7 @@ public class Node {
     private int hostPort;
 
     //method that starts server
-    public void startServer(int hostPort) {
+    public void run() {
 
         System.out.println("Starting startServer...");
 
@@ -34,7 +36,6 @@ public class Node {
 
             hostIp = InetAddress.getLocalHost().toString().split("/")[1];
 
-            this.populateNeighbors(hostIp, hostPort, 0);
             
             //System.out.println("populating neighbiors for own ip: " + ownIp);
             //populateNeighbors(ownIp, port, 1);
@@ -43,7 +44,7 @@ public class Node {
             while (true) {
 
                 //if fewer than max_neighbors, accept, start connection thread, hand off port, then add to list of connections
-                if (connections.size() < MAX_NEIGHBORS - 1) {
+                if (connections.size() < IDEAL_NEIGHBORS) {
 
                     socket = serv.accept();
 
@@ -219,6 +220,72 @@ public class Node {
     public int getHostPort() {
 
         return hostPort;
+
+    }
+
+    public void setHostPort(int hostPort) {
+
+        this.hostPort = hostPort;
+
+    }
+
+
+
+    public synchronized void joinNode(String ip, int port) {
+
+        System.out.println("Starting joinNode...");
+        
+       
+        System.out.println("cur connections :" + connections.values());
+        for (String connection: connections.values()) {
+            //create properly formatted message
+            if(connection.equals(ip)) {
+                System.out.println("can't join an existing node");
+                return;
+            }
+            
+        }
+
+        if(hostIp.equals(ip)) {
+            System.out.println("can't connect to self");
+            return;
+        }
+
+        System.out.println("is trying to connect to: " + ip);
+
+
+        Socket socket = null;
+
+        //try to connect to given IP on given port, catch exception
+        try 
+        {
+
+            System.out.println("Starting socket...");
+            //start connection, then thread
+            socket = new Socket(ip, port);
+
+            System.out.println(socket);
+
+            System.out.println("Creating thread object...");
+            Connection conn = new Connection(socket, this);
+
+            System.out.println("Starting thread...");
+            conn.start();
+
+            //put the new server connection into connections
+            //addConnection(conn, ip + "--" + port);
+            addConnection(conn, ip);
+
+            System.out.println("connected to:" + ip + " at port: " + port);
+
+        }
+
+        catch (Exception e) {
+
+            System.out.println(e);
+
+        }
+
 
     }
 
