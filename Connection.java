@@ -157,8 +157,19 @@ public class Connection extends Thread{
     public void handlePopulateNeighbors(String ip, int port, int counter) {
         System.out.println("here in connection handlepopulateneighbors");
 
+        Boolean isSelf = (ip.equals(source.getHostIp()) && port == source.getHostPort());
+
+        if (isSelf) {
+
+            System.out.println("recieved own populate neighbors request...");
+            return;
+
+        }
+
         //check if source node connections less than max
         if ((source.getConnections()).size() < source.getMaxNeighbors()) {
+            
+
             source.connectToPeer(ip, port);
         } 
 

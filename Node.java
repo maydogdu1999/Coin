@@ -13,7 +13,9 @@ public class Node {
     //connection socket
     private ServerSocket serv = null; 
 
-    public Node () {}
+    private String hostIp; 
+
+    private int hostPort;
 
     //method that starts server
     public void startServer(int hostPort) {
@@ -22,15 +24,19 @@ public class Node {
 
         Socket socket = null;
 
+        this.hostPort = hostPort;
+
         //try to start server on given port
         try
         {
             //start on given port
             serv = new ServerSocket(hostPort);
 
-            String ownIp = InetAddress.getLocalHost().toString().split("/")[1];
+            hostIp = InetAddress.getLocalHost().toString().split("/")[1];
 
-            this.populateNeighbors(ownIp, hostPort, 0);
+            
+
+            this.populateNeighbors(hostIp, hostPort, 0);
             
             //System.out.println("populating neighbiors for own ip: " + ownIp);
             //populateNeighbors(ownIp, port, 1);
@@ -174,5 +180,16 @@ public class Node {
         return MAX_NEIGHBORS;
     }
 
+    public String getHostIp() {
+
+        return hostIp;
+
+    }
+
+    public int getHostPort() {
+
+        return hostPort;
+
+    }
 
 }
