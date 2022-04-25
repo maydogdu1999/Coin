@@ -8,7 +8,7 @@ public class Driver {
     public static void main(String[] args) {
 
         int hostPort = 0;
-        String ip = "";
+        String neighborip = "";
         int neighborPort = 0;
         String hostIp = "";
 
@@ -33,7 +33,7 @@ public class Driver {
             hostPort = Integer.parseInt(args[0]);
 
             if (args.length != 1){
-                ip = args[1];
+                neighborip = args[1];
                 neighborPort = Integer.parseInt(args[2]);
             }
             
@@ -50,7 +50,7 @@ public class Driver {
 
         if (args.length > 1) {
 
-            node1.connectToPeer(ip, neighborPort);
+            node1.connectToPeer(neighborip, neighborPort);
 
         }
 

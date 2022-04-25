@@ -82,6 +82,8 @@ public class Node {
             //start connection, then thread
             socket = new Socket(ip, port);
 
+            System.out.println(socket);
+
             System.out.println("Creating thread object...");
             Connection conn = new Connection(socket, this);
 
