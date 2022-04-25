@@ -10,6 +10,16 @@ public class Driver {
         int hostPort = 0;
         String ip = "";
         int neighborPort = 0;
+        String hostIp = "";
+
+        try {
+            hostIp = InetAddress.getLocalHost().toString().split("/")[1];
+
+        } catch (UnknownHostException e1) {
+
+            e1.printStackTrace();
+
+        }
 
 
         //some code to make usage a little prettier when debugging 
@@ -38,15 +48,17 @@ public class Driver {
         //new node object
         Node node1 = new Node();
 
-        if (args.length == 1) {
+        if (args.length > 1) {
 
-            node1.startServer(hostPort, "--", 0);
-
-        } else {
-
-            node1.startServer(hostPort, ip, neighborPort);
+            node1.connectToPeer(ip, neighborPort);
 
         }
+
+        node1.startServer(hostPort);
+
+        node1.populateNeighbors(hostIp, hostPort, 0);
+
+        
 
     }
 }

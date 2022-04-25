@@ -16,7 +16,7 @@ public class Node {
     public Node () {}
 
     //method that starts server
-    public void startServer(int hostPort, String neighborIp, int neighborPort) {
+    public void startServer(int hostPort) {
 
         System.out.println("Starting startServer...");
 
@@ -29,14 +29,6 @@ public class Node {
             serv = new ServerSocket(hostPort);
 
             String ownIp = InetAddress.getLocalHost().toString().split("/")[1];
-
-            if (!neighborIp.equals("--") && !(neighborPort == 0)) {
-
-                connectToPeer(neighborIp, neighborPort);
-                populateNeighbors(ownIp, hostPort, 0);
-
-            }
-
             
             //System.out.println("populating neighbiors for own ip: " + ownIp);
             //populateNeighbors(ownIp, port, 1);
