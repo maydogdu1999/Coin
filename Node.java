@@ -29,6 +29,8 @@ public class Node {
             serv = new ServerSocket(hostPort);
 
             String ownIp = InetAddress.getLocalHost().toString().split("/")[1];
+
+            this.populateNeighbors(ownIp, hostPort, 0);
             
             //System.out.println("populating neighbiors for own ip: " + ownIp);
             //populateNeighbors(ownIp, port, 1);
@@ -114,16 +116,17 @@ public class Node {
         return ipString;
     }
 
-    public synchronized ConcurrentHashMap<Connection, String> getConnections() {
+    public ConcurrentHashMap<Connection, String> getConnections() {
         return connections;
     }
 
-    public synchronized Boolean addConnection(Connection connection, String ip) {
+    public Boolean addConnection(Connection connection, String ip) {
 
         if (connections.put(connection, ip) != null) {
 
             System.out.print("Added a connection: ");
             System.out.println(connections.values());
+            System.out.flush();
             return true;
 
         } else {
@@ -135,11 +138,12 @@ public class Node {
 
     }
 
-    public synchronized Boolean removeConnection(Connection connection) {
+    public Boolean removeConnection(Connection connection) {
         if (connections.remove(connection) != null) {
 
             System.out.print("removed a connection: ");
             System.out.println(connections.values());
+            System.out.flush();
             return true;
 
         } else {
