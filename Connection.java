@@ -42,6 +42,8 @@ public class Connection extends Thread{
         }
         System.out.println("Started Connection!");
 
+        sendMessage("Connected!");
+
         //to represent a given message
         String message;
 
@@ -53,7 +55,6 @@ public class Connection extends Thread{
         while (is_connected) {
             try {
                 message = input.readUTF();
-                System.out.println(message);
                 parseMessage(message);
                 
             }
@@ -106,6 +107,8 @@ public class Connection extends Thread{
      */
     public void sendMessage(String message) {
         
+  
+
         try {
             output.writeUTF(message);
             output.flush();
