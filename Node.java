@@ -77,11 +77,15 @@ public class Node {
         //try to connect to given IP on given port, catch exception
         try 
         {
+
+            System.out.println("Starting socket...");
             //start connection, then thread
             socket = new Socket(ip, port);
 
+            System.out.println("Creating thread object...");
             Connection conn = new Connection(socket, this);
 
+            System.out.println("Starting thread...");
             conn.start();
 
             //put the new server connection into connections
