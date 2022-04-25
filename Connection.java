@@ -3,7 +3,7 @@ import java.io.*;
 
 
 public class Connection extends Thread{
-    static final int MAX_DEGREES = 3;
+    static final int MAX_DEGREES = 4;
 
     private DataInputStream input = null;
 
@@ -169,13 +169,11 @@ public class Connection extends Thread{
         //check if source node connections less than max
         if ((source.getConnections()).size() < source.getMaxNeighbors()) {
             
-
             source.connectToPeer(ip, port);
         } 
 
         //check if counter less than max
         if (counter < MAX_DEGREES){
-            System.out.println("popu from conn");
             source.populateNeighbors(ip, port, ++counter);
         }
 

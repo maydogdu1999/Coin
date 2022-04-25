@@ -55,12 +55,12 @@ public class Node {
             
                     //put the new client connection into connections
                     String ipNeighbor = getIpFromSocket(socket);
-                    addConnection(conn, ipNeighbor);
 
+                    addConnection(conn, ipNeighbor + "--" + socket.getPort());
+                    System.out.println("received a connection to:" + ipNeighbor + "at port: " + socket.getPort());
                     System.out.println(connections.values());
 
 
-                    System.out.println("connected to:" + ipNeighbor);
                 }
                 
             }
@@ -76,9 +76,27 @@ public class Node {
     }
 
     //method for a node to connect to a peer, given ip and port
-    public void connectToPeer(String ip, int port) {
+    public synchronized void connectToPeer(String ip, int port) {
 
         System.out.println("Starting connectToPeer...");
+
+        String connectionInfo = ip + "--" +String.valueOf(port);
+        System.out.println("cur connections :" + connections.values());
+        for (String connection: connections.values()) {
+            //create properly formatted message
+            if(connection.equals(connectionInfo)) {
+                System.out.println("can't connect to the same ip at the same port twice");
+                return;
+            }
+            
+        }
+
+        if((hostIp + "--" + hostPort).equals(connectionInfo)) {
+            System.out.println("can't connect to self at the same port");
+            return;
+        }
+        System.out.println("is trying to connect to: " + connectionInfo);
+
 
         Socket socket = null;
 
@@ -99,9 +117,10 @@ public class Node {
             conn.start();
 
             //put the new server connection into connections
-            addConnection(conn, ip);
+            addConnection(conn, ip + "--" + port);
 
-            System.out.println("connected to:" + ip);
+
+            System.out.println("connected to:" + ip + " at port: " + port);
 
         }
 
