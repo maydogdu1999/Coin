@@ -22,14 +22,19 @@ public class Node {
         //try to start server on given port
         try
         {
+            //start on given port
             serv = new ServerSocket(port);
+
             String ownIp = InetAddress.getLocalHost().toString().split("/")[1];
-            System.out.println("populating neighbiors for own ip: " + ownIp);
-            populateNeighbors(ownIp, port, 1);
+            //System.out.println("populating neighbiors for own ip: " + ownIp);
+            //populateNeighbors(ownIp, port, 1);
+
             //while less than 10 neighbors, accept new connections 
             while (true) {
 
+                //if fewer than max_neighbors, accept, start connection thread, hand off port, then add to list of connections
                 if (connections.size() < MAX_NEIGHBORS - 1) {
+
                     socket = serv.accept();
 
                     Connection conn = new Connection(socket, this);
@@ -39,7 +44,8 @@ public class Node {
                     //put the new client connection into connections
                     String ipNeighbor = getIpFromSocket(socket);
                     connections.put(conn, ipNeighbor);
-                    System.out.println(connections.values());
+
+
                     System.out.println("connected to:" + ipNeighbor);
                 }
                 
@@ -55,6 +61,7 @@ public class Node {
 
     }
 
+    //method for a node to connect to a peer, given ip and port
     public void connectToPeer(String ip, int port) {
 
         Socket socket = null;
@@ -62,6 +69,7 @@ public class Node {
         //try to connect to given IP on given port, catch exception
         try 
         {
+            //start connection, then thread
             socket = new Socket(ip, port);
 
             Connection conn = new Connection(socket, this);
@@ -86,6 +94,7 @@ public class Node {
     }
     //given a socket, return the other sides ip address as string
     public String getIpFromSocket(Socket socketName) {
+        
         InetSocketAddress sockaddr = (InetSocketAddress)socketName.getRemoteSocketAddress();
         InetAddress inaddr = sockaddr.getAddress();
         String ipString = inaddr.toString().split("/")[1];
