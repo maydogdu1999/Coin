@@ -139,6 +139,12 @@ public class Connection extends Thread{
             int counter = Integer.parseInt(parsedMessage[3]);
             handlePopulateNeighbors(ip, port, counter);
         }
+
+        if (parsedMessage[0].equals("Transaction")) {
+
+        source.verifyTransaction(message);
+
+        }
     }
 
     /**

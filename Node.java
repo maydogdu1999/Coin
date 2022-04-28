@@ -393,9 +393,16 @@ public class Node extends Thread {
      */
     public Boolean verifyTransaction(String message) {
 
+        String[] splitMsg = message.split("--");
 
+        String hashedTransaction = splitMsg[1];
 
-        return true;
+        String signature = splitMsg[2];
+
+        String pubKey = splitMsg[3];
+
+        return hashedTransaction.equals(decryptMessage(signature, pubKey));
+
     }
 
 }
