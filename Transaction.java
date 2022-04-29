@@ -1,34 +1,24 @@
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 public class Transaction {
-
-    private String month;
-    private String day;
-    private String year;
-    private String hour;
-    private String sec;
+    private String time;
     private String amount;
     private String sender; //sender public key
     private String recipient; //recipient public key
-
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
     
-    public Transaction(String month, String day, String year, String hour, String sec, String amount, String sender, String recipient) {
-        this.month = month;
-        this.day = day;
-        this.year = year;
-        this.hour = hour;
-        this.sec = sec;
+    public Transaction(String senderPublicKey, String recipientPublicKey, String amount) {
+        Timestamp timeStamp = new Timestamp(System.currentTimeMillis());
+        this.time = sdf.format(timeStamp);
         this.amount = amount;
-        this.sender = sender;
-        this.recipient = recipient;
+        this.sender = senderPublicKey;
+        this.recipient = recipientPublicKey;
     }
 
     public String transactionInfo() {
-        String info = month + "-" + day + "-" + year + "-" + hour + "-" + sec + "-" + amount + "-" + sender + "-" + recipient;
+        String info = time + "--" + amount + "--" + sender + "--" + recipient;
         return info;
     }
-
-
-
-
 
 
 }

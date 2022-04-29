@@ -323,9 +323,37 @@ public class Node extends Thread {
 
     }
 
+     /**
+     * A method that converts a given string into a public key, necessary because key will be a string when read in from socket
+     * @param key String representing some public key
+     * @return A PublicKey object representing a public key
+     */
+    public PrivateKey stringToPrivateKey(String key) {
+
+        PrivateKey priKey = null; 
+
+        try {
+        byte[] priKeyByte = Base64.getDecoder().decode(key);
+
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(priKeyByte);
+
+        KeyFactory keyFac = KeyFactory.getInstance("RSA");
+
+        priKey = keyFac.generatePrivate(keySpec);
+        
+        } catch (Exception e) {
+
+            System.out.println(e);
+
+        }
+
+        return priKey;
+
+    }
+
     /**
      * This method encrypts a given string using the given private key. This is called "signing" a string. The resulting string can be decrypted using the corresponding
-     * private key.
+     * public key.
      * @param message A String to be encrypted
      * @param privateKey a String representing the private key with which to encrypt
      * @return a String representing the encrypted message
@@ -403,6 +431,18 @@ public class Node extends Thread {
 
         return hashedTransaction.equals(decryptMessage(signature, pubKey));
 
+    }
+
+    public Boolean makeTransaction(String senderPublicKey, String senderPrivateKey, String recipientPublicKey, String amount) {
+        Transaction newTransaction = new Transaction(senderPublicKey, recipientPublicKey, amount);
+        PrivateKey priKey = stringToPrivateKey(senderPrivateKey);
+        String transactionMessage = newTransaction.transactionInfo();
+        String encryptedMessage = encryptMessage(transactionMessage, priKey);
+
+        //send the transaction to all neighbors for verification
+        //we need to send transaction message without hashing but verifyTransaction take hashed message which needs to be changed
+
+        return true;
     }
 
 }
