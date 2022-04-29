@@ -436,8 +436,8 @@ public class Node extends Thread {
     public Boolean makeTransaction(String senderPublicKey, String senderPrivateKey, String recipientPublicKey, String amount) {
         Transaction newTransaction = new Transaction(senderPublicKey, recipientPublicKey, amount);
         PrivateKey priKey = stringToPrivateKey(senderPrivateKey);
-        String transactionMessage = newTransaction.transactionInfo();
-        String encryptedMessage = encryptMessage(transactionMessage, priKey);
+        String rawMessage = newTransaction.transactionInfo();
+        String signedMessage = encryptMessage(rawMessage, priKey); //encrypt message is currently not hashing. it needs to hash.
 
         //send the transaction to all neighbors for verification
         //we need to send transaction message without hashing but verifyTransaction take hashed message which needs to be changed
