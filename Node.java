@@ -373,7 +373,7 @@ public class Node extends Thread {
      * @return a String representing the encrypted message
      */
     public String encryptMessage(String message, PrivateKey privateKey) {
-        Security.addProvider(new BouncyCastleProvider());
+        
 
         Cipher encrypt = null; 
 
@@ -381,7 +381,8 @@ public class Node extends Thread {
 
         try {
 
-            encrypt = Cipher.getInstance("RSA/NONE/NoPadding", "BC");
+            
+            encrypt = Cipher.getInstance("RSA");
 
             encrypt.init(Cipher.ENCRYPT_MODE, privateKey);
 
@@ -405,7 +406,7 @@ public class Node extends Thread {
      */
     public String decryptMessage(String signedMessage, String publicKey) {
 
-        Security.addProvider(new BouncyCastleProvider());
+        
 
         String decryptedMessage = "";
 
@@ -415,7 +416,8 @@ public class Node extends Thread {
 
         try {
 
-            decrypt = Cipher.getInstance("RSA/NONE/NoPadding", "BC");
+            
+            decrypt = Cipher.getInstance("RSA");
 
             decrypt.init(Cipher.DECRYPT_MODE, pubKey);
 
