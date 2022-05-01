@@ -5,10 +5,18 @@ import java.io.*;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
-
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+
+import java.security.spec.RSAPublicKeySpec;
+import java.nio.charset.StandardCharsets;
+
 
 public class Node extends Thread {
     static final int MAX_NEIGHBORS = 5;
@@ -302,16 +310,16 @@ public class Node extends Thread {
      */
     public PublicKey stringToPublicKey(String key) {
 
-        PublicKey pubKey = null; 
+        RSAPublicKey pubKey = null; 
 
         try {
         byte[] pubKeyByte = Base64.getDecoder().decode(key);
 
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pubKeyByte);
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(pubKeyByte);
 
         KeyFactory keyFac = KeyFactory.getInstance("RSA");
 
-        pubKey = keyFac.generatePublic(keySpec);
+        pubKey = (RSAPublicKey) keyFac.generatePublic(keySpec);
         
         } catch (Exception e) {
 
@@ -330,7 +338,7 @@ public class Node extends Thread {
      */
     public PrivateKey stringToPrivateKey(String key) {
 
-        PrivateKey priKey = null; 
+        RSAPrivateKey priKey = null; 
 
         try {
         byte[] priKeyByte = Base64.getDecoder().decode(key);
@@ -339,7 +347,7 @@ public class Node extends Thread {
 
         KeyFactory keyFac = KeyFactory.getInstance("RSA");
 
-        priKey = keyFac.generatePrivate(keySpec);
+        priKey = (RSAPrivateKey) keyFac.generatePrivate(keySpec);
         
         } catch (Exception e) {
 
@@ -359,18 +367,19 @@ public class Node extends Thread {
      * @return a String representing the encrypted message
      */
     public String encryptMessage(String message, PrivateKey privateKey) {
+        Security.addProvider(new BouncyCastleProvider());
 
-        Cipher encrypt = null;
+        Cipher encrypt = null; 
 
         String encryptedMessage = "";
 
         try {
 
-            encrypt = Cipher.getInstance("RSA");
+            encrypt = Cipher.getInstance("RSA/NONE/NoPadding", "BC");
 
             encrypt.init(Cipher.ENCRYPT_MODE, privateKey);
 
-            encryptedMessage = new String(encrypt.doFinal(Base64.getDecoder().decode(message)));
+            encryptedMessage = Base64.getEncoder().withoutPadding().encodeToString(encrypt.doFinal(Base64.getDecoder().decode(message)));
 
         } catch (Exception e) {
 
@@ -390,6 +399,8 @@ public class Node extends Thread {
      */
     public String decryptMessage(String signedMessage, String publicKey) {
 
+        Security.addProvider(new BouncyCastleProvider());
+
         String decryptedMessage = "";
 
         PublicKey pubKey = stringToPublicKey(publicKey);
@@ -398,11 +409,11 @@ public class Node extends Thread {
 
         try {
 
-            decrypt = Cipher.getInstance("RSA");
+            decrypt = Cipher.getInstance("RSA/NONE/NoPadding", "BC");
 
             decrypt.init(Cipher.DECRYPT_MODE, pubKey);
 
-            decryptedMessage = new String(decrypt.doFinal(Base64.getDecoder().decode(signedMessage)));
+            decryptedMessage = Base64.getEncoder().withoutPadding().encodeToString(decrypt.doFinal(Base64.getDecoder().decode(signedMessage.trim())));
 
         } catch (Exception e) {
 
@@ -421,15 +432,15 @@ public class Node extends Thread {
      */
     public Boolean verifyTransaction(String message) {
 
-        String[] splitMsg = message.split("--");
+        String[] splitMsg = message.split("=-=-=");
 
-        String hashedTransaction = splitMsg[1];
+        String rawMessage = splitMsg[1];
 
-        String signature = splitMsg[2];
+        String signedMessage = splitMsg[2];
 
-        String pubKey = splitMsg[3];
+        String senderPublicKey = splitMsg[3];
 
-        return hashedTransaction.equals(decryptMessage(signature, pubKey));
+        return hashSHA256(rawMessage).equals(decryptMessage(signedMessage, senderPublicKey));
 
     }
 
@@ -437,12 +448,47 @@ public class Node extends Thread {
         Transaction newTransaction = new Transaction(senderPublicKey, recipientPublicKey, amount);
         PrivateKey priKey = stringToPrivateKey(senderPrivateKey);
         String rawMessage = newTransaction.transactionInfo();
-        String signedMessage = encryptMessage(rawMessage, priKey); //encrypt message is currently not hashing. it needs to hash.
+        String hashedMessaged = hashSHA256(rawMessage);
+        String signedMessage = encryptMessage(hashedMessaged, priKey); //encrypt message is currently not hashing. it needs to hash.
 
         //send the transaction to all neighbors for verification
         //we need to send transaction message without hashing but verifyTransaction take hashed message which needs to be changed
+        String message = "verifyTransaction" + "=-=-=" + rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey; 
+        System.out.println("result of verification: " + verifyTransaction(message));
 
+        /** 
+        for (Connection connection: connections.keySet()) {
+
+            //create properly formatted message
+            String message = "verifyTransaction" + "***" + rawMessage + "***" + signedMessage + "***" + senderPublicKey; 
+            connection.sendMessage(message);
+        }
+        */
         return true;
+    }
+
+    public String hashSHA256(String data) {
+        
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
+            for (int i = 0; i < encodedhash.length; i++) {
+                String hex = Integer.toHexString(0xff & encodedhash[i]);
+                if(hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        }
+
+        catch (Exception e) {
+            System.out.println(e);
+            return  null;
+        }
+
+        
     }
 
 }

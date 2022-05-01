@@ -1,18 +1,11 @@
 # Makefile for the online bookstore
+LIBS=/home/maydogdu/bowdoin-coin
+NEW_CLASSPATH=lib/*:${CLASSPATH}
 
-default: Node.class Connection.class Transaction.class Driver.class
+SRC = $(wildcard *.java) 
 
-Connection.class: Connection.java
-	javac Connection.java
-Node.class: Node.java
-	javac Node.java
+all: build
 
-Transaction.class: Transaction.java
-	javac Transaction.java
-Driver.class: Driver.java
-	javac Driver.java
-
-clean:
-	-rm -f *.class
-
-all: clean Node.class Connection.class Transaction.class Driver.class
+build: ${SRC}
+	${JAVA_HOME}/bin/javac -Xlint -cp ${NEW_CLASSPATH} ${SRC}
+	${JAVA_HOME}/bin/jar cvf bcprov-jdk18on-171.jar *.class lib

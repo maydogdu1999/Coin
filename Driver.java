@@ -8,7 +8,20 @@ import java.nio.file.Files;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import org.bouncycastle.util.io.pem.PemReader;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import javax.crypto.Cipher;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+
+import java.security.spec.RSAPublicKeySpec;
+import java.nio.charset.StandardCharsets;
 
 
 public class Driver {
@@ -56,20 +69,7 @@ public class Driver {
             try {
                 inputLine = scanner.nextLine();
                 System.out.println("recevied command:" + inputLine);
-                handleCommandLine(inputLine);
-                
-            }
-            catch (Exception e) {
-                System.out.println(e);
-
-            }
-            
-        }    
-
-    }
-
-    public static void handleCommandLine(String inputLine) {
-        String[] inputParsed = inputLine.split("--");
+                String[] inputParsed = inputLine.split("--");
 
         if (inputParsed[0].equals("joinNode")) {
             if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
@@ -87,21 +87,57 @@ public class Driver {
             String recipientPublicKey;
             String amount;            
             try {
-                senderPublicKey = readFile(inputParsed[1], StandardCharsets.US_ASCII);
-                senderPrivateKey = readFile(inputParsed[2], StandardCharsets.US_ASCII);
-                recipientPublicKey = readFile(inputParsed[3], StandardCharsets.US_ASCII);
+                /** 
+                PemReader reader1 = new PemReader( new FileReader( inputParsed[1] ) );
+                byte[] pubKey = reader1.readPemObject().getContent();
+                senderPublicKey = Base64.getEncoder().encodeToString(pubKey);
+
+                PemReader reader2 = new PemReader( new FileReader( inputParsed[2] ) );
+                byte[] priKey = reader2.readPemObject().getContent();
+                senderPrivateKey = Base64.getEncoder().encodeToString(priKey);
+
+                PemReader reader3 = new PemReader( new FileReader( inputParsed[2] ) );
+                byte[] pubKey2 = reader3.readPemObject().getContent();
+                recipientPublicKey = Base64.getEncoder().encodeToString(pubKey2);
+                */
+                senderPublicKey = getKeyAsString(inputParsed[1]);
+                senderPrivateKey = getKeyAsString(inputParsed[2]);
+                recipientPublicKey = getKeyAsString(inputParsed[3]);
                 amount = inputParsed[4];
                 node1.makeTransaction(senderPublicKey, senderPrivateKey, recipientPublicKey, amount);
             }
             catch (Exception e) {
-                System.out.println(e);
+                System.out.println("couldn't do transaction: " + e);
             }
             
         }
+                
+            }
+            catch (Exception e) {
+                System.out.println(e);
+
+            }
+            
+        }    
+
     }
 
-    static String readFile(String path, Charset encoding) throws IOException {
-            byte[] encoded = Files.readAllBytes(Paths.get(path));
-            return new String(encoded, encoding);
+    public static String getKeyAsString(String filename) {
+        try {
+            File file = new File(filename);
+            FileInputStream fis = new FileInputStream(file);
+            DataInputStream dis = new DataInputStream(fis);  
+            byte[] keyBytes = new byte[(int) file.length()];
+            dis.readFully(keyBytes);
+            dis.close();
+            String keyAsString = Base64.getEncoder().encodeToString(keyBytes);
+            return keyAsString;
+        }
+        catch (Exception e) {
+            return null;
+        }
+        
     }
+    
+    
 }
