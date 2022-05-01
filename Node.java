@@ -478,8 +478,8 @@ public class Node extends Thread {
                 return false;
             }
 
-            else if (getNumNeighborsVerified() == IDEAL_NEIGHBORS) {
-                return true;
+            else if (getNumNeighborsVerified() == getConnections().size()) {
+                break;
             }
 
             else if ((System.currentTimeMillis() - startTime) > 1000 * TIME_OUT_MAKE_TRANSACTION) {
