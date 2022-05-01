@@ -81,25 +81,19 @@ public class Driver {
             node1.populateNeighbors(ip, neighborPort, 0);
         }
 
+        if (inputParsed[0].equals("printConnections")) {
+            System.out.println("numConnections: " + node1.getConnections().size() + " connections: " + node1.getConnections().values());
+        }
+
         if (inputParsed[0].equals("makeTransaction")) {
             String senderPublicKey;
             String senderPrivateKey;
             String recipientPublicKey;
             String amount;            
             try {
-                /** 
-                PemReader reader1 = new PemReader( new FileReader( inputParsed[1] ) );
-                byte[] pubKey = reader1.readPemObject().getContent();
-                senderPublicKey = Base64.getEncoder().encodeToString(pubKey);
-
-                PemReader reader2 = new PemReader( new FileReader( inputParsed[2] ) );
-                byte[] priKey = reader2.readPemObject().getContent();
-                senderPrivateKey = Base64.getEncoder().encodeToString(priKey);
-
-                PemReader reader3 = new PemReader( new FileReader( inputParsed[2] ) );
-                byte[] pubKey2 = reader3.readPemObject().getContent();
-                recipientPublicKey = Base64.getEncoder().encodeToString(pubKey2);
-                */
+                if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
+                    System.out.println("Can't join: Max number of neighbors reached");
+                }
                 senderPublicKey = getKeyAsString(inputParsed[1]);
                 senderPrivateKey = getKeyAsString(inputParsed[2]);
                 recipientPublicKey = getKeyAsString(inputParsed[3]);
