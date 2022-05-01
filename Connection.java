@@ -127,7 +127,7 @@ public class Connection extends Thread{
      */
     public void parseMessage(String message) {
 
-        String[] parsedMessage = message.split("--");
+        String[] parsedMessage = message.split("=-=-=");
         if (parsedMessage[0].equals("populateNeighbors")) {
 
             System.out.println(parsedMessage[0]);
@@ -140,10 +140,28 @@ public class Connection extends Thread{
             handlePopulateNeighbors(ip, port, counter);
         }
 
-        if (parsedMessage[0].equals("Transaction")) {
+        if (parsedMessage[0].equals("verifyTransaction")) {
 
-        source.verifyTransaction(message);
+            confirmVerification(source.verifyTransaction(message));
+        }
 
+        if (parsedMessage[0].equals("confirmVerification")) {
+
+            if (parsedMessage[1].equals("true")) {
+                source.setNumNeighborsVerified(source.getNumNeighborsVerified() + 1);
+            }
+            else {
+                source.setNotVerifiedByNeighbor(true);
+            }
+        }
+    }
+
+    public void confirmVerification(Boolean verified) {
+        if (verified) {
+            sendMessage("confirmVerification=-=-=true");
+        }
+        else {
+            sendMessage("confirmVerification=-=-=false");
         }
     }
 

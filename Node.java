@@ -21,10 +21,16 @@ import java.nio.charset.StandardCharsets;
 public class Node extends Thread {
     static final int MAX_NEIGHBORS = 5;
     static final int IDEAL_NEIGHBORS = 3;
+    static final int TIME_OUT_MAKE_TRANSACTION = 3; //in seconds
+    static final int MIN_REQUIRED_VERIFICATIONS = 1;
+
 
 
     //private ArrayList<String> neighbors = new ArrayList<String>(); //an array of Strings containing the IP addresses of the Node's neighbors.
     ConcurrentHashMap<Connection, String> connections = new ConcurrentHashMap<Connection,String>();
+    
+    private int numNeighborsVerified = 0;
+    private boolean notVerifiedByNeighbor = false;
 
     //connection socket
     private ServerSocket serv = null; 
@@ -209,7 +215,7 @@ public class Node extends Thread {
         for (Connection connection: connections.keySet()) {
 
             //create properly formatted message
-            String message = "populateNeighbors--" + ip + "--" + String.valueOf(port) + "--" + String.valueOf(counter);
+            String message = "populateNeighbors=-=-=" + ip + "=-=-=" + String.valueOf(port) + "=-=-=" + String.valueOf(counter);
 
             connection.sendMessage(message);
 
@@ -456,15 +462,36 @@ public class Node extends Thread {
         String message = "verifyTransaction" + "=-=-=" + rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey; 
         System.out.println("result of verification: " + verifyTransaction(message));
 
-        /** 
-        for (Connection connection: connections.keySet()) {
+        setNumNeighborsVerified(0);
+        setNotVerifiedByNeighbor(false);
 
+        for (Connection connection: connections.keySet()) {
             //create properly formatted message
-            String message = "verifyTransaction" + "***" + rawMessage + "***" + signedMessage + "***" + senderPublicKey; 
             connection.sendMessage(message);
         }
-        */
-        return true;
+        
+        long startTime = System.currentTimeMillis();
+
+        while (true) {
+
+            if (notVerifiedByNeighbor) {
+                return false;
+            }
+
+            else if (getNumNeighborsVerified() == IDEAL_NEIGHBORS) {
+                return true;
+            }
+
+            else if ((System.currentTimeMillis() - startTime) > 1000 * TIME_OUT_MAKE_TRANSACTION) {
+                break;
+            }
+        }
+
+        if (getNumNeighborsVerified() >= MIN_REQUIRED_VERIFICATIONS) {
+            return true;
+        }
+
+        return false;
     }
 
     public String hashSHA256(String data) {
@@ -491,4 +518,15 @@ public class Node extends Thread {
         
     }
 
+    public synchronized void setNumNeighborsVerified(int num) {
+        numNeighborsVerified = num;
+    }
+
+    public synchronized int getNumNeighborsVerified() {
+        return numNeighborsVerified;
+    }
+
+    public synchronized void setNotVerifiedByNeighbor(Boolean value) {
+        notVerifiedByNeighbor = value;
+    }
 }

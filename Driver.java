@@ -104,7 +104,8 @@ public class Driver {
                 senderPrivateKey = getKeyAsString(inputParsed[2]);
                 recipientPublicKey = getKeyAsString(inputParsed[3]);
                 amount = inputParsed[4];
-                node1.makeTransaction(senderPublicKey, senderPrivateKey, recipientPublicKey, amount);
+                Boolean success = node1.makeTransaction(senderPublicKey, senderPrivateKey, recipientPublicKey, amount);
+                System.out.println("result of makeTransaction: " + success);
             }
             catch (Exception e) {
                 System.out.println("couldn't do transaction: " + e);
