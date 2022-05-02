@@ -18,49 +18,52 @@ import java.security.spec.RSAPublicKeySpec;
 import java.nio.charset.StandardCharsets;
 
 
+/**
+ * The Node class represents the main thread of each BowdoinCoin node. It consists of one primary data structure: connections, a concurrent hashmap that maps connection
+ * objects, each representing a connection to a "neighbor" node, to strings, each string representing the IP address of the corresponding connection. It also maintains
+ * a series of constants for the purpose of controlling the total number of neighbors, required verifications, among other things
+ */
 public class Node extends Thread {
+
+    //CONSTANTS
     static final int MAX_NEIGHBORS = 5;
     static final int IDEAL_NEIGHBORS = 3;
     static final int TIME_OUT_MAKE_TRANSACTION = 3; //in seconds
     static final int MIN_REQUIRED_VERIFICATIONS = 1;
 
-
-
-    //private ArrayList<String> neighbors = new ArrayList<String>(); //an array of Strings containing the IP addresses of the Node's neighbors.
+    //connections stores a node's "neighbors"
     ConcurrentHashMap<Connection, String> connections = new ConcurrentHashMap<Connection,String>();
     
+
     private int numNeighborsVerified = 0;
     private boolean notVerifiedByNeighbor = false;
 
     //connection socket
     private ServerSocket serv = null; 
 
+    //the IP of the node's host machine
     private String hostIp; 
 
+    //Port num of the node's process
     private int hostPort;
 
-    //method that starts server
+    //method that starts the node
     public void run() {
 
         System.out.println("Starting startServer...");
 
         Socket socket = null;
 
-        this.hostPort = hostPort;
-
         //try to start server on given port
         try
         {
-            //start on given port
+            //start on hostPort
             serv = new ServerSocket(hostPort);
 
+            //setting ownIP
             hostIp = InetAddress.getLocalHost().toString().split("/")[1];
 
-            
-            //System.out.println("populating neighbiors for own ip: " + ownIp);
-            //populateNeighbors(ownIp, port, 1);
-
-            //while less than 10 neighbors, accept new connections 
+            //main server loop body
             while (true) {
 
                 //if fewer than max_neighbors, accept, start connection thread, hand off port, then add to list of connections
@@ -81,9 +84,7 @@ public class Node extends Thread {
 
 
                 }
-                
             }
-    
         }
 
         catch (IOException e) {
@@ -91,44 +92,41 @@ public class Node extends Thread {
             System.out.println(e);
 
         }
-
     }
 
-    //method for a node to connect to a peer, given ip and port
+    /**
+     * This method allows a node to connect to another node as a neighbor. It adds the node to the connections hashmap
+     * @param ip a String representing the ip of the node to which it is connecting
+     * @param port int representing port of peer
+     */
     public synchronized void connectToPeer(String ip, int port) {
 
         System.out.println("Starting connectToPeer...");
-        
-       
-        System.out.println("cur connections :" + connections.values());
+        System.out.println("Connections before connectToPeer: " + connections.values());
+        System.out.println("Trying to connect to machine: " + ip);
+
+        //check list of connections, don't want to connect to the same node twice
         for (String connection: connections.values()) {
-            //create properly formatted message
             if(connection.equals(ip)) {
                 System.out.println("can't connect to the same ip twice");
                 return;
             }
-            
         }
 
+        //check to make sure not connecting to self
         if(hostIp.equals(ip)) {
             System.out.println("can't connect to self");
             return;
         }
 
-        System.out.println("is trying to connect to: " + ip);
-
-
         Socket socket = null;
 
         //try to connect to given IP on given port, catch exception
-        try 
-        {
+        try {
 
             System.out.println("Starting socket...");
             //start connection, then thread
             socket = new Socket(ip, port);
-
-            System.out.println(socket);
 
             System.out.println("Creating thread object...");
             Connection conn = new Connection(socket, this);
@@ -137,34 +135,37 @@ public class Node extends Thread {
             conn.start();
 
             //put the new server connection into connections
-            //addConnection(conn, ip + "--" + port);
             addConnection(conn, ip);
 
-            System.out.println("connected to:" + ip + " at port: " + port);
+            System.out.println("connected to: " + ip + " at port: " + port);
 
-        }
-
-        catch (Exception e) {
+        } catch (Exception e) {
 
             System.out.println(e);
 
         }
-
-
     }
-    //given a socket, return the other sides ip address as string
+
+    /**
+     * A method that returns the IP address of the machine on the other end of the given socket
+     * @param socketName socket connected to some machine
+     * @return string representing the id of the other machine.
+     */
     public String getIpFromSocket(Socket socketName) {
 
         InetSocketAddress sockaddr = (InetSocketAddress)socketName.getRemoteSocketAddress();
         InetAddress inaddr = sockaddr.getAddress();
         String ipString = inaddr.toString().split("/")[1];
         return ipString;
+    
     }
 
-    public ConcurrentHashMap<Connection, String> getConnections() {
-        return connections;
-    }
-
+    /**
+     * A method that adds a given connection object to the connections hashmap 
+     * @param connection connection object representing the connection to be added
+     * @param ip string representing the ip of other machine in the connection
+     * @return boolean representing success. 
+     */    
     public Boolean addConnection(Connection connection, String ip) {
 
         if (connections.put(connection, ip) != null) {
@@ -177,12 +178,13 @@ public class Node extends Thread {
         } else {
             return false;
         }
-
-        
-
-
     }
 
+    /**
+     * A method to remove a given connection from the connections hashmap.
+     * @param connection connection object representing some connection
+     * @return a boolean representing success. 
+     */
     public Boolean removeConnection(Connection connection) {
         if (connections.remove(connection) != null) {
 
@@ -194,9 +196,15 @@ public class Node extends Thread {
         } else {
             return false;
         }
-
     }
 
+    /**
+     * populateNeighbors is one of the special commands in the BowdoinCoin network. It allows a node to populate its list of neighbors by broadcasting a message across the network,
+     * looking for other nodes that also have fewer than the ideal number. This is called by some connection thread that recieves a populate neighbors request, or by the node itself
+     * @param ip String representing the ip of the node sending the request
+     * @param port integer representing the port number of node sending the request
+     * @param counter int representing the degree broadcast counter 
+     */
     public void populateNeighbors(String ip, int port, int counter) {
         
         try {
@@ -207,7 +215,6 @@ public class Node extends Thread {
         }
         
         System.out.println("Starting populate Neighbors...");
-
         System.out.print("connections while in populate neighbors: ");
         System.out.println(connections.values());
 
@@ -221,34 +228,6 @@ public class Node extends Thread {
 
         }
     }
-
-    public int getMaxNeighbors() {
-        return MAX_NEIGHBORS;
-    }
-
-    public String getHostIp() {
-
-        return hostIp;
-
-    }
-    public void setHostIp(String hostIp) {
-
-        this.hostIp = hostIp;
-
-    }
-
-    public int getHostPort() {
-
-        return hostPort;
-
-    }
-
-    public void setHostPort(int hostPort) {
-
-        this.hostPort = hostPort;
-
-    }
-
 
 
     public synchronized void joinNode(String ip, int port) {
@@ -338,9 +317,9 @@ public class Node extends Thread {
     }
 
      /**
-     * A method that converts a given string into a public key, necessary because key will be a string when read in from socket
-     * @param key String representing some public key
-     * @return A PublicKey object representing a public key
+     * A method that converts a given string into a private key
+     * @param key String representing some private key
+     * @return A PrivateKey object representing a private key
      */
     public PrivateKey stringToPrivateKey(String key) {
 
@@ -406,8 +385,6 @@ public class Node extends Thread {
      */
     public String decryptMessage(String signedMessage, String publicKey) {
 
-        
-
         String decryptedMessage = "";
 
         PublicKey pubKey = stringToPublicKey(publicKey);
@@ -415,7 +392,6 @@ public class Node extends Thread {
         Cipher decrypt = null;
 
         try {
-
             
             decrypt = Cipher.getInstance("RSA");
 
@@ -520,6 +496,11 @@ public class Node extends Thread {
         
     }
 
+
+    /**
+     * SERIES OF GETTERS, SETTERS
+     * 
+     */
     public synchronized void setNumNeighborsVerified(int num) {
         numNeighborsVerified = num;
     }
@@ -531,4 +512,41 @@ public class Node extends Thread {
     public synchronized void setNotVerifiedByNeighbor(Boolean value) {
         notVerifiedByNeighbor = value;
     }
+
+    public int getMaxNeighbors() {
+        return MAX_NEIGHBORS;
+    }
+
+    public String getHostIp() {
+
+        return hostIp;
+
+    }
+
+    public ConcurrentHashMap<Connection, String> getConnections() {
+        return connections;
+    }
+
+
+    public void setHostIp(String hostIp) {
+
+        this.hostIp = hostIp;
+
+    }
+
+    public int getHostPort() {
+
+        return hostPort;
+
+    }
+
+    public void setHostPort(int hostPort) {
+
+        this.hostPort = hostPort;
+
+    }
+
+
+
 }
+
