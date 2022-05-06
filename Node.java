@@ -5,13 +5,16 @@ import java.io.*;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
+
+import org.bouncycastle.crypto.BlockCipher;
+
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+//import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 
 import java.security.spec.RSAPublicKeySpec;
@@ -33,7 +36,11 @@ public class Node extends Thread {
 
     //connections stores a node's "neighbors"
     ConcurrentHashMap<Connection, String> connections = new ConcurrentHashMap<Connection,String>();
-    
+
+    static ArrayList<ArrayList<String>> blockChain = new ArrayList<ArrayList<String>>();
+    static ArrayList<String> currentBlock = new ArrayList<>();
+    //one transaction is stored in the format: rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey + "=-=-=" + recipientPublicKey
+    //rawMessage is stored in the format: time + "--" + amount + "--" + senderPublicKey + "--" + recipientPublicKey + "--" + senderNewBalance + "--" + recipientNewBalance;
 
     private int numNeighborsVerified = 0;
     private boolean notVerifiedByNeighbor = false;
@@ -67,10 +74,11 @@ public class Node extends Thread {
             while (true) {
 
                 //if fewer than max_neighbors, accept, start connection thread, hand off port, then add to list of connections
+
                 if (connections.size() < IDEAL_NEIGHBORS) {
 
                     socket = serv.accept();
-
+                    
                     Connection conn = new Connection(socket, this);
 
                     conn.start();
@@ -429,16 +437,22 @@ public class Node extends Thread {
     }
 
     public Boolean makeTransaction(String senderPublicKey, String senderPrivateKey, String recipientPublicKey, String amount) {
-        Transaction newTransaction = new Transaction(senderPublicKey, recipientPublicKey, amount);
-        PrivateKey priKey = stringToPrivateKey(senderPrivateKey);
+        
+        if (Float.parseFloat(amount) < 0) {
+            return false; //cannot send negative amounts
+        }
+        
+        Transaction newTransaction = new Transaction(senderPublicKey, recipientPublicKey, amount, this);
         String rawMessage = newTransaction.transactionInfo();
+        PrivateKey priKey = stringToPrivateKey(senderPrivateKey);
+
         String hashedMessaged = hashSHA256(rawMessage);
         String signedMessage = encryptMessage(hashedMessaged, priKey); //encrypt message is currently not hashing. it needs to hash.
 
         //send the transaction to all neighbors for verification
         //we need to send transaction message without hashing but verifyTransaction take hashed message which needs to be changed
         String message = "verifyTransaction" + "=-=-=" + rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey; 
-        System.out.println("result of verification: " + verifyTransaction(message));
+        System.out.println("result of verification at the local node: " + verifyTransaction(message));
 
         setNumNeighborsVerified(0);
         setNotVerifiedByNeighbor(false);
@@ -466,10 +480,14 @@ public class Node extends Thread {
         }
 
         if (getNumNeighborsVerified() >= MIN_REQUIRED_VERIFICATIONS) {
+            blastTransaction(rawMessage, signedMessage, senderPublicKey, recipientPublicKey);
             return true;
         }
 
-        return false;
+        else {
+            return false;
+        }
+
     }
 
     public String hashSHA256(String data) {
@@ -492,9 +510,98 @@ public class Node extends Thread {
             System.out.println(e);
             return  null;
         }
-
         
     }
+
+    public void blastTransaction(String rawMessage, String signedMessage, String senderPublicKey, String recipientPublicKey) {
+
+
+        String message = rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey + "=-=-=" + recipientPublicKey; 
+
+        if (isDuplicateTransaction(message)) {
+            System.out.println("received duplicate transaction");
+            return;
+        }
+
+        currentBlock.add(message);
+
+        message = "blastTransaction" + "=-=-=" + message;
+
+        for (Connection connection: connections.keySet()) {
+            connection.sendMessage(message);
+        }
+    }
+
+
+
+    public Double getUserBalance(String userPublicKey) {
+        
+        String[] transactionParsed;
+        String sender;
+        String recipient;
+        double amount;
+
+        //check in the currentBlock initially
+        for (int i = currentBlock.size() - 1; i >= 0; i--) {
+
+            transactionParsed = currentBlock.get(i).split("=-=-=");
+            sender = transactionParsed[2];
+            recipient = transactionParsed[3];
+
+            if (sender.equals(userPublicKey)) {
+                amount = Float.parseFloat(transactionParsed[0].split("--")[4]);
+                return amount;
+            }
+
+            if (recipient.equals(userPublicKey)) {
+                amount = Float.parseFloat(transactionParsed[0].split("--")[5]);
+                return amount;
+            }
+
+        }
+
+        for (int i = blockChain.size() - 1; i >= 0; i--) {
+            ArrayList<String> block = blockChain.get(i);
+            for (int j = block.size() - 1; j >= 0; j--) {
+
+                transactionParsed = block.get(j).split("=-=-=");
+                sender = transactionParsed[2];
+                recipient = transactionParsed[3];
+
+                if (sender.equals(userPublicKey)) {
+                    amount = Float.parseFloat(transactionParsed[0].split("--")[4]);
+                    return amount;
+                }
+
+                if (recipient.equals(userPublicKey)) {
+                    amount = Float.parseFloat(transactionParsed[0].split("--")[5]);
+                    return amount;
+                }
+            
+            }
+
+        }
+
+        //if no such user found, then he's new. Set his amount to 100.
+        return 100.0;
+
+    }
+
+    public boolean isDuplicateTransaction(String transaction) {
+        String oldTransaction;
+
+        //check in the currentBlock initially
+        for (int i = currentBlock.size() - 1; i >= 0; i--) {
+            oldTransaction= currentBlock.get(i);
+            if (transaction.equals(oldTransaction)) {
+                return true;
+            }
+        }
+        return false;
+
+    }
+
+
 
 
     /**

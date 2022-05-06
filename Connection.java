@@ -154,6 +154,12 @@ public class Connection extends Thread{
                 source.setNotVerifiedByNeighbor(true);
             }
         }
+
+        if (parsedMessage[0].equals("blastTransaction")) {
+            //need to add some verification here
+            source.blastTransaction(parsedMessage[1], parsedMessage[2], parsedMessage[3], parsedMessage[4]);
+        }
+
     }
 
     public void confirmVerification(Boolean verified) {
