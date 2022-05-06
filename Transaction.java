@@ -17,7 +17,7 @@ public class Transaction {
         this.sender = senderPublicKey;
         this.recipient = recipientPublicKey;
         this.senderNewBalance = String.valueOf(node1.getUserBalance(senderPublicKey) - Float.parseFloat(amount));
-        this.recipientNewBalance = String.valueOf(node1.getUserBalance(recipientPublicKey)  - Float.parseFloat(amount));
+        this.recipientNewBalance = String.valueOf(node1.getUserBalance(recipientPublicKey)  + Float.parseFloat(amount));
     }
 
     public String transactionInfo() {

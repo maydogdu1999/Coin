@@ -601,8 +601,10 @@ public class Node extends Thread {
 
     }
 
-
-
+    public ArrayList<String> getCurrentBlock() {
+        return currentBlock;
+    }
+    
 
     /**
      * SERIES OF GETTERS, SETTERS

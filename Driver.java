@@ -85,6 +85,12 @@ public class Driver {
             System.out.println("numConnections: " + node1.getConnections().size() + " connections: " + node1.getConnections().values());
         }
 
+        if (inputParsed[0].equals("printTransactions")) {
+            ArrayList<String> currentBlock = node1.getCurrentBlock();
+            int size = currentBlock.size();
+            System.out.println("# transactions made today: " + size + " last transaction: " + currentBlock.get(size - 1).split("=-=-=")[0]);
+        }
+
         if (inputParsed[0].equals("makeTransaction")) {
             String senderPublicKey;
             String senderPrivateKey;
