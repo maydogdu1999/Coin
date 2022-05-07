@@ -31,7 +31,9 @@ public class ChainTimer extends Thread{
             
             //System.out.println("now: " + LocalDateTime.now() + " start: " + startOfDay + " end: " + latest);
             if (isBetween(LocalDateTime.now(), startOfDay, latest)) {
+                source.setGracePeriod(true);
                 System.out.println("will mine soon");
+
                 try {
                     TimeUnit.SECONDS.sleep(30);
                 }
@@ -44,6 +46,8 @@ public class ChainTimer extends Thread{
                     //waiting for grace period to end
                 }
                 source.setStartOfDay((LocalDateTime) null);;
+                source.setGracePeriod(false);
+
             }
 
         }

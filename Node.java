@@ -35,7 +35,7 @@ public class Node extends Thread {
     static final int TIME_OUT_MAKE_TRANSACTION = 3; //in seconds
     static final int MIN_REQUIRED_VERIFICATIONS = 1;
     static final int MINE_DIFFUCULTY = 3;
-
+     
     static LocalDateTime startOfDay = null;
 
 
@@ -51,6 +51,7 @@ public class Node extends Thread {
     private boolean notVerifiedByNeighbor = false;
     private boolean mined = false;
     private boolean receivedBlock = false;
+    private boolean isGracePeriod = false;
 
 
     //connection socket
@@ -631,6 +632,7 @@ public class Node extends Thread {
             blastMined(null);
             String block = "";
             System.out.println("I mined first");
+            setReceivedBlock(true);
 
             sortCurrentBlock();
 
@@ -777,6 +779,15 @@ public class Node extends Thread {
         return startOfDay;
     }
 
+    public boolean isGracePeriod() {
+        return isGracePeriod;
+    }
+
+
+    public void setGracePeriod(boolean value) {
+        isGracePeriod = value;
+    }
+
     public ArrayList<ArrayList<String>> getBlockChain() {
         return blockChain;
     }  
@@ -788,7 +799,7 @@ public class Node extends Thread {
         for (int i = 0; i < blockChain.size(); i++) {
             curBlock = blockChain.get(i);
             size = curBlock.size();
-            info += "block " + i + " >>> numTransactions: " + (size - 1) + "  hashValue: " + curBlock.get(size - 1);
+            info += "block " + i + " >>> numTransactions: " + (size - 1) + "  hashValue: " + curBlock.get(size - 1) + "\n";
 
         }
 
