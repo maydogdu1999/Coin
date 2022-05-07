@@ -170,6 +170,8 @@ public class Connection extends Thread{
             if (source.getMined() != true) {
                 source.setMined(true);
                 source.blastMined(this);
+                System.out.println("Someone mined");
+
             }
             return;
         }
@@ -182,6 +184,8 @@ public class Connection extends Thread{
             else {
                 source.setReceivedBlock(true);
                 source.blastBlock(message, this);
+                System.out.println("Received block with hash:" + parsedBlock[parsedBlock.length - 1]);
+
             }
 
         }

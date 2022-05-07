@@ -630,6 +630,7 @@ public class Node extends Thread {
             mined = true;
             blastMined(null);
             String block = "";
+            System.out.println("I mined first");
 
             sortCurrentBlock();
 
@@ -638,6 +639,8 @@ public class Node extends Thread {
             }
         
             String blockHash = hashSHA256(block);
+            System.out.println("mined with hash: " + blockHash);
+
 
             block += blockHash;
             block = "block<><><><>" + block;
@@ -674,6 +677,7 @@ public class Node extends Thread {
     }
 
     public void sortCurrentBlock() {
+        System.out.println("current block: " + currentBlock);
         Collections.sort(currentBlock, new sortTransaction());
     }
    
@@ -683,6 +687,7 @@ public class Node extends Thread {
     // Method
     // Sorting in ascending order of timestamps
         public int compare(String A, String B)  {
+            System.out.println("in comparator:  " + A.split("=-=-=")[0].split("--")[0]);
             Timestamp timeA = Timestamp.valueOf(A.split("=-=-=")[0].split("--")[0]);
             Timestamp timeB = Timestamp.valueOf(B.split("=-=-=")[0].split("--")[0]);
             return timeA.compareTo(timeB);

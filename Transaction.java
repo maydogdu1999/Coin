@@ -7,7 +7,7 @@ public class Transaction {
     private String recipient; //recipient public key
     private String senderNewBalance;
     private String recipientNewBalance;
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
     public Transaction(String senderPublicKey, String recipientPublicKey, String amount, Node node1) {
         
