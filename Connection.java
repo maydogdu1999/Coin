@@ -128,6 +128,7 @@ public class Connection extends Thread{
     public void parseMessage(String message) {
 
         String[] parsedMessage = message.split("=-=-=");
+
         if (parsedMessage[0].equals("populateNeighbors")) {
 
             System.out.println(parsedMessage[0]);
@@ -138,11 +139,13 @@ public class Connection extends Thread{
             int port = Integer.parseInt(parsedMessage[2]);
             int counter = Integer.parseInt(parsedMessage[3]);
             handlePopulateNeighbors(ip, port, counter);
+            return;
         }
 
         if (parsedMessage[0].equals("verifyTransaction")) {
 
             confirmVerification(source.verifyTransaction(message));
+            return;
         }
 
         if (parsedMessage[0].equals("confirmVerification")) {
@@ -153,11 +156,34 @@ public class Connection extends Thread{
             else {
                 source.setNotVerifiedByNeighbor(true);
             }
+            return;
         }
 
         if (parsedMessage[0].equals("blastTransaction")) {
             //need to add some verification here
-            source.blastTransaction(parsedMessage[1], parsedMessage[2], parsedMessage[3], parsedMessage[4]);
+            source.blastTransaction(parsedMessage[1], parsedMessage[2], parsedMessage[3], parsedMessage[4], this);
+            return;
+        }
+
+        if (parsedMessage[0].equals("MINED")) {
+
+            if (source.getMined() != true) {
+                source.setMined(true);
+                source.blastMined(this);
+            }
+            return;
+        }
+        
+        String[] parsedBlock = message.split("<><><><>");
+        if(parsedBlock[0].equals("block")) {
+            if(source.isReceivedBlock()) {
+                return;
+            }
+            else {
+                source.setReceivedBlock(true);
+                source.blastBlock(message, this);
+            }
+
         }
 
     }

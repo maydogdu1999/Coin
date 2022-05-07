@@ -5,8 +5,9 @@ import java.io.*;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
-
+import java.time.*;
 import org.bouncycastle.crypto.BlockCipher;
+import java.sql.Timestamp;  
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -33,6 +34,10 @@ public class Node extends Thread {
     static final int IDEAL_NEIGHBORS = 3;
     static final int TIME_OUT_MAKE_TRANSACTION = 3; //in seconds
     static final int MIN_REQUIRED_VERIFICATIONS = 1;
+    static final int MINE_DIFFUCULTY = 3;
+
+    static LocalDateTime startOfDay = null;
+
 
     //connections stores a node's "neighbors"
     ConcurrentHashMap<Connection, String> connections = new ConcurrentHashMap<Connection,String>();
@@ -44,6 +49,9 @@ public class Node extends Thread {
 
     private int numNeighborsVerified = 0;
     private boolean notVerifiedByNeighbor = false;
+    private boolean mined = false;
+    private boolean receivedBlock = false;
+
 
     //connection socket
     private ServerSocket serv = null; 
@@ -480,7 +488,7 @@ public class Node extends Thread {
         }
 
         if (getNumNeighborsVerified() >= MIN_REQUIRED_VERIFICATIONS) {
-            blastTransaction(rawMessage, signedMessage, senderPublicKey, recipientPublicKey);
+            blastTransaction(rawMessage, signedMessage, senderPublicKey, recipientPublicKey, null);
             return true;
         }
 
@@ -513,9 +521,9 @@ public class Node extends Thread {
         
     }
 
-    public void blastTransaction(String rawMessage, String signedMessage, String senderPublicKey, String recipientPublicKey) {
-
-
+    public void blastTransaction(String rawMessage, String signedMessage, String senderPublicKey, String recipientPublicKey, Connection excluded) {
+        //excluded parameter is used for not sending the transaction to the connection that gave it to us in the first place
+        
         String message = rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey + "=-=-=" + recipientPublicKey; 
 
         if (isDuplicateTransaction(message)) {
@@ -528,7 +536,9 @@ public class Node extends Thread {
         message = "blastTransaction" + "=-=-=" + message;
 
         for (Connection connection: connections.keySet()) {
-            connection.sendMessage(message);
+            if(connection != excluded) {
+                connection.sendMessage(message);
+            }
         }
     }
 
@@ -562,7 +572,7 @@ public class Node extends Thread {
 
         for (int i = blockChain.size() - 1; i >= 0; i--) {
             ArrayList<String> block = blockChain.get(i);
-            for (int j = block.size() - 1; j >= 0; j--) {
+            for (int j = block.size() - 2; j >= 0; j--) { //skip the last element because it is the hash value
 
                 transactionParsed = block.get(j).split("=-=-=");
                 sender = transactionParsed[2];
@@ -601,15 +611,100 @@ public class Node extends Thread {
 
     }
 
-    public ArrayList<String> getCurrentBlock() {
-        return currentBlock;
+
+    public void mine() {
+        Random rand = new Random();
+        int n = rand.nextInt(1000000);
+        int counter = 0;
+
+        while (counter < MINE_DIFFUCULTY * 10) {
+            if (rand.nextInt(1000000) == n) {
+                counter += 1;
+            }
+            if (mined) {
+                return;
+            }
+        }
+
+        if (!mined) {
+            mined = true;
+            blastMined(null);
+            String block = "";
+
+            sortCurrentBlock();
+
+            for (String transaction: currentBlock) {
+                block += transaction + "<><><><>";
+            }
+        
+            String blockHash = hashSHA256(block);
+
+            block += blockHash;
+            block = "block<><><><>" + block;
+            blastBlock(block, null);
+        }
+        //need to sort and form block and send
     }
-    
+
+    public void blastBlock(String block, Connection excluded) {
+
+        for (Connection connection: connections.keySet()) {
+            if (connection != excluded) {
+                connection.sendMessage(block);
+            }
+        }
+
+        String[] blockParsed = block.split("<><><><>");
+        ArrayList<String> blockAsList = new ArrayList<String>(Arrays.asList(blockParsed));  
+        blockAsList.remove(0);
+
+        blockChain.add(blockAsList);
+
+    }
+
+    public void blastMined(Connection excluded) {
+
+        String message = "MINED";
+
+        for (Connection connection: connections.keySet()) {
+            if(connection != excluded) {
+                connection.sendMessage(message);
+            }
+        }
+    }
+
+    public void sortCurrentBlock() {
+        Collections.sort(currentBlock, new sortTransaction());
+    }
+   
+
+
+    class sortTransaction implements Comparator<String> {
+    // Method
+    // Sorting in ascending order of timestamps
+        public int compare(String A, String B)  {
+            Timestamp timeA = Timestamp.valueOf(A.split("=-=-=")[0].split("--")[0]);
+            Timestamp timeB = Timestamp.valueOf(B.split("=-=-=")[0].split("--")[0]);
+            return timeA.compareTo(timeB);
+        }
+    }
 
     /**
      * SERIES OF GETTERS, SETTERS
      * 
      */
+
+    public boolean isReceivedBlock() {
+        return receivedBlock;
+    }
+    public void setReceivedBlock(boolean value) {
+        receivedBlock = value;
+    }
+
+    public ArrayList<String> getCurrentBlock() {
+        return currentBlock;
+    }
+
     public synchronized void setNumNeighborsVerified(int num) {
         numNeighborsVerified = num;
     }
@@ -655,6 +750,26 @@ public class Node extends Thread {
 
     }
 
+    public void setMined(Boolean value) {
+        mined = value;
+    }
+
+    public boolean getMined() {
+        return mined;
+    }
+
+    public void setStartOfDay(String start) {
+        startOfDay = LocalDateTime.parse(start);
+    }
+
+    public void setStartOfDay(LocalDateTime time) {
+        startOfDay = time;
+    }
+
+
+    public LocalDateTime getStartOfDay() {
+        return startOfDay;
+    }
 
 
 }

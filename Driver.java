@@ -9,9 +9,10 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 //import org.bouncycastle.util.io.pem.PemReader;
+import java.util.Random;
 
 //import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
+import java.util.concurrent.*;
 import javax.crypto.Cipher;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -22,6 +23,9 @@ import java.security.spec.X509EncodedKeySpec;
 
 import java.security.spec.RSAPublicKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.*;
+import java.util.concurrent.TimeUnit;
 
 
 public class Driver {
@@ -64,55 +68,67 @@ public class Driver {
 
 
         node1.start();
+        ChainTimer timer = new ChainTimer(node1);
+        timer.start();
+
 
         while(true) {
+
+
             try {
                 inputLine = scanner.nextLine();
-                System.out.println("recevied command:" + inputLine);
+                System.out.println("received command: " + inputLine);
                 String[] inputParsed = inputLine.split("--");
 
-        if (inputParsed[0].equals("joinNode")) {
-            if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
-                System.out.println("Can't join: Max number of neighbors reached");
-            }
-            String ip = inputParsed[1];
-            int neighborPort = Integer.parseInt(inputParsed[2]);
-            node1.joinNode(ip, neighborPort);
-            node1.populateNeighbors(ip, neighborPort, 0);
-        }
 
-        if (inputParsed[0].equals("printConnections")) {
-            System.out.println("numConnections: " + node1.getConnections().size() + " connections: " + node1.getConnections().values());
-        }
 
-        if (inputParsed[0].equals("printTransactions")) {
-            ArrayList<String> currentBlock = node1.getCurrentBlock();
-            int size = currentBlock.size();
-            System.out.println("# transactions made today: " + size + " last transaction: " + currentBlock.get(size - 1).split("=-=-=")[0]);
-        }
-
-        if (inputParsed[0].equals("makeTransaction")) {
-            String senderPublicKey;
-            String senderPrivateKey;
-            String recipientPublicKey;
-            String amount;            
-            try {
-                if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
-                    System.out.println("Can't join: Max number of neighbors reached");
+                if (inputParsed[0].equals("joinNode")) {
+                    if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
+                        System.out.println("Can't join: Max number of neighbors reached");
+                    }
+                    String ip = inputParsed[1];
+                    int neighborPort = Integer.parseInt(inputParsed[2]);
+                    node1.joinNode(ip, neighborPort);
+                    node1.populateNeighbors(ip, neighborPort, 0);
                 }
-                senderPublicKey = getKeyAsString(inputParsed[1]);
-                senderPrivateKey = getKeyAsString(inputParsed[2]);
-                recipientPublicKey = getKeyAsString(inputParsed[3]);
-                amount = inputParsed[4];
-                Boolean success = node1.makeTransaction(senderPublicKey, senderPrivateKey, recipientPublicKey, amount);
-                System.out.println("result of makeTransaction: " + success);
-            }
-            catch (Exception e) {
-                System.out.println("couldn't do transaction: " + e);
-            }
-            
-        }
-                
+
+                if (inputParsed[0].equals("printConnections")) {
+                    System.out.println("numConnections: " + node1.getConnections().size() + " connections: " + node1.getConnections().values());
+                }
+
+                if (inputParsed[0].equals("setStartOfDay")) {
+                     
+                    node1.setStartOfDay(inputParsed[1]); // should be formatted as "2015-08-04T10:11:30"
+                    System.out.println("start of day set!");
+                }
+
+                if (inputParsed[0].equals("printTransactions")) {
+                    ArrayList<String> currentBlock = node1.getCurrentBlock();
+                    int size = currentBlock.size();
+                    System.out.println("# transactions made today: " + size + " last transaction: " + currentBlock.get(size - 1).split("=-=-=")[0]);
+                }
+
+                if (inputParsed[0].equals("makeTransaction")) {
+                    String senderPublicKey;
+                    String senderPrivateKey;
+                    String recipientPublicKey;
+                    String amount;            
+                    try {
+                        if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
+                            System.out.println("Can't join: Max number of neighbors reached");
+                        }
+                        senderPublicKey = getKeyAsString(inputParsed[1]);
+                        senderPrivateKey = getKeyAsString(inputParsed[2]);
+                        recipientPublicKey = getKeyAsString(inputParsed[3]);
+                        amount = inputParsed[4];
+                        Boolean success = node1.makeTransaction(senderPublicKey, senderPrivateKey, recipientPublicKey, amount);
+                        System.out.println("result of makeTransaction: " + success);
+                    }
+                    catch (Exception e) {
+                        System.out.println("couldn't do transaction: " + e);
+                    }
+                    
+                } 
             }
             catch (Exception e) {
                 System.out.println(e);
@@ -139,6 +155,8 @@ public class Driver {
         }
         
     }
+
     
+
     
 }
