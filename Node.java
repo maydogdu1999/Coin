@@ -662,6 +662,7 @@ public class Node extends Thread {
         blockAsList.remove(0);
 
         blockChain.add(blockAsList);
+        currentBlock = new ArrayList<String>();
 
     }
 
@@ -775,6 +776,27 @@ public class Node extends Thread {
     public LocalDateTime getStartOfDay() {
         return startOfDay;
     }
+
+    public ArrayList<ArrayList<String>> getBlockChain() {
+        return blockChain;
+    }  
+
+    public String printBlockChain() {
+        String info = "";
+        ArrayList<String> curBlock;
+        int size;
+        for (int i = 0; i < blockChain.size(); i++) {
+            curBlock = blockChain.get(i);
+            size = curBlock.size();
+            info += "block " + i + " >>> numTransactions: " + (size - 1) + "  hashValue: " + curBlock.get(size - 1);
+
+        }
+
+        return info;
+
+
+    }  
+
 
 
 }

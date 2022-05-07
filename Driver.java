@@ -128,7 +128,11 @@ public class Driver {
                         System.out.println("couldn't do transaction: " + e);
                     }
                     
-                } 
+                }
+
+                if (inputParsed[0].equals("printBlockchain")) {
+                    System.out.println(node1.printBlockChain());
+                }
             }
             catch (Exception e) {
                 System.out.println(e);
