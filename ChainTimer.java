@@ -27,7 +27,7 @@ public class ChainTimer extends Thread{
 
             startOfDay = source.getStartOfDay();
 
-            latest = startOfDay.plusMinutes(3); // tolerance, you can adjust it for your needs
+            latest = startOfDay.plusMinutes(source.getGracePeriodLength()); // tolerance, you can adjust it for your needs
             
             //System.out.println("now: " + LocalDateTime.now() + " start: " + startOfDay + " end: " + latest);
             if (isBetween(LocalDateTime.now(), startOfDay, latest)) {

@@ -76,13 +76,16 @@ public class Driver {
 
 
             try {
-                inputLine = scanner.nextLine();
-                System.out.println("received command: " + inputLine);
-                String[] inputParsed = inputLine.split("--");
 
                 while(node1.isGracePeriod()) {
                     //waiting for grace period to end. can't process messages during grace period
                 }
+                
+                inputLine = scanner.nextLine();
+                System.out.println("received command: " + inputLine);
+                String[] inputParsed = inputLine.split("--");
+
+                
 
                 if (inputParsed[0].equals("joinNode")) {
                     if (node1.getConnections().size() > node1.getMaxNeighbors() ) {

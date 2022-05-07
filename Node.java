@@ -35,6 +35,8 @@ public class Node extends Thread {
     static final int TIME_OUT_MAKE_TRANSACTION = 3; //in seconds
     static final int MIN_REQUIRED_VERIFICATIONS = 1;
     static final int MINE_DIFFUCULTY = 3;
+    static final int GRACE_PERIOD_LENGTH = 3; // in minutes
+
      
     static LocalDateTime startOfDay = null;
 
@@ -791,6 +793,11 @@ public class Node extends Thread {
     public ArrayList<ArrayList<String>> getBlockChain() {
         return blockChain;
     }  
+
+    public int getGracePeriodLength() {
+        return GRACE_PERIOD_LENGTH;
+    }  
+
 
     public String printBlockChain() {
         String info = "";
