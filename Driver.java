@@ -80,7 +80,7 @@ public class Driver {
                 while(node1.isGracePeriod()) {
                     //waiting for grace period to end. can't process messages during grace period
                 }
-                
+
                 inputLine = scanner.nextLine();
                 System.out.println("received command: " + inputLine);
                 String[] inputParsed = inputLine.split("--");
@@ -101,6 +101,11 @@ public class Driver {
                     System.out.println("numConnections: " + node1.getConnections().size() + " connections: " + node1.getConnections().values());
                 }
 
+                if (inputParsed[0].equals("userBalance")) {
+                    String publicKey = getKeyAsString(inputParsed[1]);
+                    System.out.println("Balance: " + node1.getUserBalance(publicKey));
+                }
+
                 if (inputParsed[0].equals("setStartOfDay")) {
                      
                     node1.setStartOfDay(inputParsed[1]); // should be formatted as "2015-08-04T10:11:30"
@@ -110,6 +115,9 @@ public class Driver {
                 if (inputParsed[0].equals("printTransactions")) {
                     ArrayList<String> currentBlock = node1.getCurrentBlock();
                     int size = currentBlock.size();
+                    if (size == 0) {
+                        System.out.println("No transactions made today");
+                    }
                     System.out.println("# transactions made today: " + size + " last transaction: " + currentBlock.get(size - 1).split("=-=-=")[0]);
                 }
 

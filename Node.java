@@ -36,6 +36,8 @@ public class Node extends Thread {
     static final int MIN_REQUIRED_VERIFICATIONS = 1;
     static final int MINE_DIFFUCULTY = 3;
     static final int GRACE_PERIOD_LENGTH = 3; // in minutes
+    static final double NEW_USER_DEFAULT_BALANCE = 100.0; // in cryptocurrency unit
+
 
      
     static LocalDateTime startOfDay = null;
@@ -596,7 +598,7 @@ public class Node extends Thread {
         }
 
         //if no such user found, then he's new. Set his amount to 100.
-        return 100.0;
+        return NEW_USER_DEFAULT_BALANCE;
 
     }
 
