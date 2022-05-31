@@ -2,23 +2,16 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.io.*;
-import java.util.concurrent.TimeUnit;
-
 import javax.crypto.Cipher;
 import java.time.*;
-import org.bouncycastle.crypto.BlockCipher;
-import java.sql.Timestamp;  
-
+import java.sql.Timestamp;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-//import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 
-import java.security.spec.RSAPublicKeySpec;
 import java.nio.charset.StandardCharsets;
 
 
@@ -30,30 +23,33 @@ import java.nio.charset.StandardCharsets;
 public class Node extends Thread {
 
     //CONSTANTS
-    static final int MAX_NEIGHBORS = 5;
-    static final int IDEAL_NEIGHBORS = 3;
+    static final int MAX_NEIGHBORS = 12;
+    static final int IDEAL_NEIGHBORS = 8;
     static final int TIME_OUT_MAKE_TRANSACTION = 3; //in seconds
-    static final int MIN_REQUIRED_VERIFICATIONS = 1;
-    static final int MINE_DIFFUCULTY = 3;
+
+    static int MINE_DIFFUCULTY = 4;
     static final int GRACE_PERIOD_LENGTH = 3; // in minutes
     static final double NEW_USER_DEFAULT_BALANCE = 100.0; // in cryptocurrency unit
 
 
-     
     static LocalDateTime startOfDay = null;
+
+   
 
 
     //connections stores a node's "neighbors"
     ConcurrentHashMap<Connection, String> connections = new ConcurrentHashMap<Connection,String>();
 
-    static ArrayList<ArrayList<String>> blockChain = new ArrayList<ArrayList<String>>();
-    static ArrayList<String> currentBlock = new ArrayList<>();
+    Block topBlock = null;
+
+    static ArrayList<Transaction> currentBlock = new ArrayList<Transaction>();
     //one transaction is stored in the format: rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey + "=-=-=" + recipientPublicKey
     //rawMessage is stored in the format: time + "--" + amount + "--" + senderPublicKey + "--" + recipientPublicKey + "--" + senderNewBalance + "--" + recipientNewBalance;
 
     private int numNeighborsVerified = 0;
-    private boolean notVerifiedByNeighbor = false;
+    
     private boolean mined = false;
+    private String mineHash = "";
     private boolean receivedBlock = false;
     private boolean isGracePeriod = false;
 
@@ -80,9 +76,6 @@ public class Node extends Thread {
             //start on hostPort
             serv = new ServerSocket(hostPort);
 
-            //setting ownIP
-            hostIp = InetAddress.getLocalHost().toString().split("/")[1];
-
             //main server loop body
             while (true) {
 
@@ -102,8 +95,6 @@ public class Node extends Thread {
                     addConnection(conn, ipNeighbor);
                     System.out.println("received a connection to:" + ipNeighbor);
                     System.out.println(connections.values());
-
-
                 }
             }
         }
@@ -120,24 +111,26 @@ public class Node extends Thread {
      * @param ip a String representing the ip of the node to which it is connecting
      * @param port int representing port of peer
      */
-    public synchronized void connectToPeer(String ip, int port) {
+    public synchronized Connection connectToPeer(String ip, int port) {
 
         System.out.println("Starting connectToPeer...");
         System.out.println("Connections before connectToPeer: " + connections.values());
         System.out.println("Trying to connect to machine: " + ip);
+        System.out.println("Host IP: " + hostIp);
 
         //check list of connections, don't want to connect to the same node twice
         for (String connection: connections.values()) {
             if(connection.equals(ip)) {
                 System.out.println("can't connect to the same ip twice");
-                return;
+                return null;
             }
         }
 
         //check to make sure not connecting to self
         if(hostIp.equals(ip)) {
+            
             System.out.println("can't connect to self");
-            return;
+            return null;
         }
 
         Socket socket = null;
@@ -159,12 +152,14 @@ public class Node extends Thread {
             addConnection(conn, ip);
 
             System.out.println("connected to: " + ip + " at port: " + port);
+            return conn;
 
         } catch (Exception e) {
 
             System.out.println(e);
 
         }
+        return null;
     }
 
     /**
@@ -187,7 +182,7 @@ public class Node extends Thread {
      * @param ip string representing the ip of other machine in the connection
      * @return boolean representing success. 
      */    
-    public Boolean addConnection(Connection connection, String ip) {
+    public synchronized Boolean addConnection(Connection connection, String ip) {
 
         if (connections.put(connection, ip) != null) {
 
@@ -226,84 +221,35 @@ public class Node extends Thread {
      * @param port integer representing the port number of node sending the request
      * @param counter int representing the degree broadcast counter 
      */
-    public void populateNeighbors(String ip, int port, int counter) {
-        
-        try {
-            TimeUnit.SECONDS.sleep(1);
-        } 
-        catch (Exception e) {
-            System.out.print(e);
-        }
+    public void populateNeighbors(String ip, int port, int counter, Connection excluded) {
         
         System.out.println("Starting populate Neighbors...");
         System.out.print("connections while in populate neighbors: ");
         System.out.println(connections.values());
+        String message = "populateNeighbors=-=-=" + ip + "=-=-=" + String.valueOf(port) + "=-=-=" + String.valueOf(counter);
 
         //for each neighbor
         for (Connection connection: connections.keySet()) {
 
             //create properly formatted message
-            String message = "populateNeighbors=-=-=" + ip + "=-=-=" + String.valueOf(port) + "=-=-=" + String.valueOf(counter);
-
-            connection.sendMessage(message);
+            if (connection != excluded) {
+                while (connection.getOutputStream() == null) {
+                    //waiting for a connection to settle
+                }
+                connection.sendMessage(message);
+            }
 
         }
     }
 
+    public void blast(String message, Connection excluded) {
 
-    public synchronized void joinNode(String ip, int port) {
+        System.out.println("Blasting...");
 
-        System.out.println("Starting joinNode...");
-        
-       
-        System.out.println("cur connections :" + connections.values());
-        for (String connection: connections.values()) {
-            //create properly formatted message
-            if(connection.equals(ip)) {
-                System.out.println("can't join an existing node");
-                return;
+        for (Connection connection: connections.keySet()) {
+            if(connection != excluded) {
+                connection.sendMessage(message);
             }
-            
-        }
-
-        if(hostIp.equals(ip)) {
-            System.out.println("can't connect to self");
-            return;
-        }
-
-        System.out.println("is trying to connect to: " + ip);
-
-
-        Socket socket = null;
-
-        //try to connect to given IP on given port, catch exception
-        try 
-        {
-
-            System.out.println("Starting socket...");
-            //start connection, then thread
-            socket = new Socket(ip, port);
-
-            System.out.println(socket);
-
-            System.out.println("Creating thread object...");
-            Connection conn = new Connection(socket, this);
-
-            System.out.println("Starting thread...");
-            conn.start();
-
-            //put the new server connection into connections
-            //addConnection(conn, ip + "--" + port);
-            addConnection(conn, ip);
-
-            System.out.println("connected to:" + ip + " at port: " + port);
-
-        }
-
-        catch (Exception e) {
-
-            System.out.println(e);
-
         }
 
 
@@ -357,6 +303,7 @@ public class Node extends Thread {
         
         } catch (Exception e) {
 
+            e.printStackTrace();
             System.out.println(e);
 
         }
@@ -390,6 +337,7 @@ public class Node extends Thread {
 
         } catch (Exception e) {
 
+            e.printStackTrace();
             System.out.println(e);
 
         }
@@ -422,6 +370,7 @@ public class Node extends Thread {
 
         } catch (Exception e) {
 
+            e.printStackTrace();
             System.out.println(e);
 
         }
@@ -435,71 +384,36 @@ public class Node extends Thread {
      * @param message A string that is the transaction message read in from socket.
      * @return a boolean representing whether the transaction has been verified 
      */
-    public Boolean verifyTransaction(String message) {
+    public Boolean verifyTransaction(Transaction t) {
 
-        String[] splitMsg = message.split("=-=-=");
 
-        String rawMessage = splitMsg[1];
+        String rawMessage = t.transactionInfo();
 
-        String signedMessage = splitMsg[2];
+        String signedMessage = t.getSignature();
 
-        String senderPublicKey = splitMsg[3];
+        String senderPublicKey = t.getSender();
 
         return hashSHA256(rawMessage).equals(decryptMessage(signedMessage, senderPublicKey));
 
     }
 
-    public Boolean makeTransaction(String senderPublicKey, String senderPrivateKey, String recipientPublicKey, String amount) {
+    public synchronized boolean makeTransaction(String senderPublicKey, String senderPrivateKey, String recipientPublicKey, String amount) {
         
-        if (Float.parseFloat(amount) < 0) {
-            return false; //cannot send negative amounts
-        }
-        
-        Transaction newTransaction = new Transaction(senderPublicKey, recipientPublicKey, amount, this);
-        String rawMessage = newTransaction.transactionInfo();
-        PrivateKey priKey = stringToPrivateKey(senderPrivateKey);
-
-        String hashedMessaged = hashSHA256(rawMessage);
-        String signedMessage = encryptMessage(hashedMessaged, priKey); //encrypt message is currently not hashing. it needs to hash.
-
-        //send the transaction to all neighbors for verification
-        //we need to send transaction message without hashing but verifyTransaction take hashed message which needs to be changed
-        String message = "verifyTransaction" + "=-=-=" + rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey; 
-        System.out.println("result of verification at the local node: " + verifyTransaction(message));
-
-        setNumNeighborsVerified(0);
-        setNotVerifiedByNeighbor(false);
-
-        for (Connection connection: connections.keySet()) {
-            //create properly formatted message
-            connection.sendMessage(message);
+        if (Double.parseDouble(amount) < 0) {
+            System.out.println("Cannot send negative amounts");
+            return false ; //cannot send negative amounts
         }
         
-        long startTime = System.currentTimeMillis();
+        Transaction newTransaction = new Transaction(senderPublicKey, recipientPublicKey, amount, senderPrivateKey, this);
 
-        while (true) {
-
-            if (notVerifiedByNeighbor) {
-                return false;
-            }
-
-            else if (getNumNeighborsVerified() == getConnections().size()) {
-                break;
-            }
-
-            else if ((System.currentTimeMillis() - startTime) > 1000 * TIME_OUT_MAKE_TRANSACTION) {
-                break;
-            }
-        }
-
-        if (getNumNeighborsVerified() >= MIN_REQUIRED_VERIFICATIONS) {
-            blastTransaction(rawMessage, signedMessage, senderPublicKey, recipientPublicKey, null);
-            return true;
-        }
-
-        else {
+        if (!verifyTransaction(newTransaction)) {
             return false;
         }
+
+        currentBlock.add(newTransaction);
+
+        blast(newTransaction.toString(), null);
+        return true;
 
     }
 
@@ -520,95 +434,93 @@ public class Node extends Thread {
         }
 
         catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
             return  null;
         }
         
     }
 
-    public void blastTransaction(String rawMessage, String signedMessage, String senderPublicKey, String recipientPublicKey, Connection excluded) {
-        //excluded parameter is used for not sending the transaction to the connection that gave it to us in the first place
-        
-        String message = rawMessage + "=-=-=" + signedMessage + "=-=-=" + senderPublicKey + "=-=-=" + recipientPublicKey; 
-
-        if (isDuplicateTransaction(message)) {
-            System.out.println("received duplicate transaction");
-            return;
-        }
-
-        currentBlock.add(message);
-
-        message = "blastTransaction" + "=-=-=" + message;
-
-        for (Connection connection: connections.keySet()) {
-            if(connection != excluded) {
-                connection.sendMessage(message);
-            }
-        }
-    }
-
-
-
     public Double getUserBalance(String userPublicKey) {
         
-        String[] transactionParsed;
-        String sender;
-        String recipient;
-        double amount;
+        Block b = topBlock;
+        Object balance;
 
-        //check in the currentBlock initially
-        for (int i = currentBlock.size() - 1; i >= 0; i--) {
+        //System.out.println(userPublicKey);
 
-            transactionParsed = currentBlock.get(i).split("=-=-=");
-            sender = transactionParsed[2];
-            recipient = transactionParsed[3];
+        if (currentBlock.size() > 0) {
 
-            if (sender.equals(userPublicKey)) {
-                amount = Float.parseFloat(transactionParsed[0].split("--")[4]);
-                return amount;
+            balance = getBalanceFromCurrentBlock(userPublicKey);
+            if (!balance.equals(false)) {
+                return (Double) balance;
             }
-
-            if (recipient.equals(userPublicKey)) {
-                amount = Float.parseFloat(transactionParsed[0].split("--")[5]);
-                return amount;
-            }
-
         }
 
-        for (int i = blockChain.size() - 1; i >= 0; i--) {
-            ArrayList<String> block = blockChain.get(i);
-            for (int j = block.size() - 2; j >= 0; j--) { //skip the last element because it is the hash value
+        if (Objects.isNull(b)) {
+            return 100.0;
+        }
 
-                transactionParsed = block.get(j).split("=-=-=");
-                sender = transactionParsed[2];
-                recipient = transactionParsed[3];
+        balance = b.getBalance(userPublicKey);
+        
+        while (balance.equals(false)) {
 
-                if (sender.equals(userPublicKey)) {
-                    amount = Float.parseFloat(transactionParsed[0].split("--")[4]);
-                    return amount;
-                }
+            if (b.getPrevious() == null) {
 
-                if (recipient.equals(userPublicKey)) {
-                    amount = Float.parseFloat(transactionParsed[0].split("--")[5]);
-                    return amount;
-                }
+                return 100.0;
+
+            }
+
+            balance = b.getPrevious().getBalance(userPublicKey);
+            b = b.getPrevious();
             
-            }
 
         }
-
-        //if no such user found, then he's new. Set his amount to 100.
-        return NEW_USER_DEFAULT_BALANCE;
+        return (Double) balance;
 
     }
 
-    public boolean isDuplicateTransaction(String transaction) {
-        String oldTransaction;
+    public Object getBalanceFromCurrentBlock(String key) {
+
+        //sort current block's transactions in ascending order
+        Collections.sort(currentBlock, new sortTransaction());
+
+        //return latest wallet value of given key
+        for (int i = currentBlock.size() -  1; i >= 0; i--) {
+
+            if (currentBlock.get(i).getRecipient().equals(key)) {
+
+                return Double.parseDouble(currentBlock.get(i).getRecipientNewBalance());
+
+            } else if (currentBlock.get(i).getSender().equals(key)) {
+
+                return Double.parseDouble(currentBlock.get(i).getSenderNewBalance());
+
+            }
+        }
+
+        return false;
+
+
+    }
+
+    public synchronized Boolean addTransaction(Transaction transaction) {
+
+        if (!isDuplicateTransaction(transaction)) {
+            currentBlock.add(transaction);
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+    public boolean isDuplicateTransaction(Transaction t) {
+        
+        Transaction oldTransaction;
 
         //check in the currentBlock initially
         for (int i = currentBlock.size() - 1; i >= 0; i--) {
             oldTransaction= currentBlock.get(i);
-            if (transaction.equals(oldTransaction)) {
+            if (t.toString().equals(oldTransaction.toString())) {
                 return true;
             }
         }
@@ -617,88 +529,112 @@ public class Node extends Thread {
     }
 
 
-    public void mine() {
-        Random rand = new Random();
-        int n = rand.nextInt(1000000);
-        int counter = 0;
+    public synchronized void buildBlock() {
+            
+        sortCurrentBlock();
 
-        while (counter < MINE_DIFFUCULTY * 10) {
-            if (rand.nextInt(1000000) == n) {
-                counter += 1;
-            }
-            if (mined) {
-                return;
-            }
-        }
-
-        if (!mined) {
-            mined = true;
-            blastMined(null);
-            String block = "";
-            System.out.println("I mined first");
-            setReceivedBlock(true);
-
-            sortCurrentBlock();
-
-            for (String transaction: currentBlock) {
-                block += transaction + "<><><><>";
-            }
+        Block newBlock = new Block(currentBlock, topBlock);
         
-            String blockHash = hashSHA256(block);
-            System.out.println("mined with hash: " + blockHash);
+        /** 
+        if (!Objects.isNull(topBlock)) {
 
+            topBlock.setNext(newBlock);
 
-            block += blockHash;
-            block = "block<><><><>" + block;
-            blastBlock(block, null);
         }
-        //need to sort and form block and send
-    }
+        */
 
-    public void blastBlock(String block, Connection excluded) {
+        topBlock = newBlock;
 
-        for (Connection connection: connections.keySet()) {
-            if (connection != excluded) {
-                connection.sendMessage(block);
-            }
-        }
+        newBlock.cleanBlock();
 
-        String[] blockParsed = block.split("<><><><>");
-        ArrayList<String> blockAsList = new ArrayList<String>(Arrays.asList(blockParsed));  
-        blockAsList.remove(0);
+        System.out.println(newBlock.toString());
 
-        blockChain.add(blockAsList);
-        currentBlock = new ArrayList<String>();
+        blast(newBlock.toString(), null);
+        removeMinedTransactions(newBlock);
+
 
     }
 
-    public void blastMined(Connection excluded) {
-
-        String message = "MINED";
-
-        for (Connection connection: connections.keySet()) {
-            if(connection != excluded) {
-                connection.sendMessage(message);
-            }
-        }
-    }
-
-    public void sortCurrentBlock() {
-        System.out.println("current block: " + currentBlock);
+    public synchronized void  sortCurrentBlock() {
+        //System.out.println("current block: " + currentBlock);
         Collections.sort(currentBlock, new sortTransaction());
     }
    
 
 
-    class sortTransaction implements Comparator<String> {
-    // Method
-    // Sorting in ascending order of timestamps
-        public int compare(String A, String B)  {
-            System.out.println("in comparator:  " + A.split("=-=-=")[0].split("--")[0]);
-            Timestamp timeA = Timestamp.valueOf(A.split("=-=-=")[0].split("--")[0]);
-            Timestamp timeB = Timestamp.valueOf(B.split("=-=-=")[0].split("--")[0]);
-            return timeA.compareTo(timeB);
+    class sortTransaction implements Comparator<Transaction> {
+        // Method
+        // Sorting in ascending order of timestamps
+            public int compare(Transaction A, Transaction B)  {
+                
+                Timestamp timeA = Timestamp.valueOf(A.getTime());
+                Timestamp timeB = Timestamp.valueOf(B.getTime());
+                return timeA.compareTo(timeB);
+            }
         }
+
+    public synchronized void removeMinedTransactions(Block block) {
+
+        //split block, get transactions
+        ArrayList<Transaction> transactions = block.getTransactions();
+        //ArrayList<Integer> toBeRemoved = new ArrayList<Integer>();
+
+        for (int i = currentBlock.size() - 1; i >= 0; i--) {
+
+            for (int j = transactions.size() - 1; j >= 0 ; j--) {
+
+                if (currentBlock.get(i).transactionInfo().equals(transactions.get(j).transactionInfo())) {
+
+                    currentBlock.remove(i);
+                    break;
+                }
+            }
+        }
+
+    }
+    public synchronized void handleIncomingBlock(String message, Connection excluded) {
+        if(isDuplicateBlock(message)) {
+            System.out.println("received same block");
+            return;
+        }
+        else {
+            Block b = new Block(message);
+            System.out.println("received new block");
+            addBlock(b);
+            blast(message, excluded);
+            
+            removeMinedTransactions(b);
+            return;
+
+        }
+    }
+
+    public boolean isDuplicateBlock(String block) {
+        if (Objects.isNull(topBlock)) {
+            return false;
+        }
+        if (topBlock.toString().equals(block)) {
+            return true;
+        }
+        return false;
+    }
+
+    public synchronized void addBlock(Block newBlock) {
+
+        if (Objects.isNull(topBlock)) {
+
+            newBlock.setPrevious(null);
+            //note previous hash never initialized in this case, might be issue?
+            topBlock = newBlock;
+            return;
+
+        }
+
+        //topBlock.setNext(newBlock);
+
+        newBlock.setPrevious(topBlock);
+        topBlock = newBlock;
+
     }
 
     /**
@@ -713,7 +649,7 @@ public class Node extends Thread {
         receivedBlock = value;
     }
 
-    public ArrayList<String> getCurrentBlock() {
+    public ArrayList<Transaction> getCurrentBlock() {
         return currentBlock;
     }
 
@@ -723,10 +659,6 @@ public class Node extends Thread {
 
     public synchronized int getNumNeighborsVerified() {
         return numNeighborsVerified;
-    }
-
-    public synchronized void setNotVerifiedByNeighbor(Boolean value) {
-        notVerifiedByNeighbor = value;
     }
 
     public int getMaxNeighbors() {
@@ -762,7 +694,7 @@ public class Node extends Thread {
 
     }
 
-    public void setMined(Boolean value) {
+    public synchronized void setMined(Boolean value) {
         mined = value;
     }
 
@@ -792,24 +724,53 @@ public class Node extends Thread {
         isGracePeriod = value;
     }
 
-    public ArrayList<ArrayList<String>> getBlockChain() {
-        return blockChain;
-    }  
 
     public int getGracePeriodLength() {
         return GRACE_PERIOD_LENGTH;
     }  
 
+    public int getMineDifficulty() {
+
+        return MINE_DIFFUCULTY;
+
+    }
+
+    public void setMineHash(String hash) {
+
+        mineHash = hash;
+
+    }
+
+    public String getMineHash() {
+
+        return mineHash;
+
+    }
+
+    public void setDifficulty(int diff) {
+
+        MINE_DIFFUCULTY = diff;
+
+    }
 
     public String printBlockChain() {
         String info = "";
-        ArrayList<String> curBlock;
-        int size;
-        for (int i = 0; i < blockChain.size(); i++) {
-            curBlock = blockChain.get(i);
-            size = curBlock.size();
-            info += "block " + i + " >>> numTransactions: " + (size - 1) + "  hashValue: " + curBlock.get(size - 1) + "\n";
 
+        Block b = topBlock;
+
+        System.out.println("Beginning printBlockchain...");
+
+        if (Objects.isNull(b)) {
+            info = "No blocks in the chain yet";
+            return info;
+        }
+
+        //println("Passed the first conditional...");
+
+        while (!Objects.isNull(b)) {
+
+            info += "block " + b.getBlockHeight() + " >>> numTransactions: " + b.getNumTransactions() + "  hashValue: " + b.getSelfHash() + "\n";
+            b = b.getPrevious();
         }
 
         return info;

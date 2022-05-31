@@ -3,28 +3,7 @@ import java.util.*;
 
 import java.io.*;
 import java.util.Scanner;
-import java.util.logging.Handler;
-import java.nio.file.Files;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-//import org.bouncycastle.util.io.pem.PemReader;
-import java.util.Random;
 
-//import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import java.util.concurrent.*;
-import javax.crypto.Cipher;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-
-import java.security.spec.RSAPublicKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.*;
 import java.util.concurrent.TimeUnit;
 
 
@@ -33,7 +12,6 @@ public class Driver {
 
     public static void main(String[] args) {
 
-        int hostPort = 0;
         
         Scanner scanner = new Scanner(System.in);
         String inputLine = "";
@@ -58,70 +36,94 @@ public class Driver {
             System.exit(1);
 
         }
-
+        
         try {
-            node1.setHostIp(InetAddress.getLocalHost().toString().split("/")[1]);
+            //System.out.println(InetAddress.getLocalHost().toString().split("/")[1]);
+            node1.setHostIp(getIp());
         }
-        catch (IOException e) {
+        catch (Exception e) {
             System.out.println(e);
         }
 
 
         node1.start();
-        ChainTimer timer = new ChainTimer(node1);
-        timer.start();
+       
 
+
+        FrontEndServer frontEnd1 = new FrontEndServer();
+        frontEnd1.setSource(node1);
+        frontEnd1.start();
 
         while(true) {
 
-
             try {
 
-                while(node1.isGracePeriod()) {
-                    //waiting for grace period to end. can't process messages during grace period
+                while(!scanner.hasNextLine()) {
+                    //need this while loop because we get errors when we run through ssh
                 }
-
                 inputLine = scanner.nextLine();
-                System.out.println("received command: " + inputLine);
-                String[] inputParsed = inputLine.split("--");
-
                 
+                System.out.println("received command: " + inputLine);
+                String[] inputParsed = inputLine.split("--");                
 
                 if (inputParsed[0].equals("joinNode")) {
                     if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
-                        System.out.println("Can't join: Max number of neighbors reached");
+                       System.out.println("Can't join: Max number of neighbors reached");
                     }
                     String ip = inputParsed[1];
                     int neighborPort = Integer.parseInt(inputParsed[2]);
-                    node1.joinNode(ip, neighborPort);
-                    node1.populateNeighbors(ip, neighborPort, 0);
+                    Connection newCon = node1.connectToPeer(ip, neighborPort);
+                    node1.populateNeighbors(ip, neighborPort, 0, newCon);
                 }
 
-                if (inputParsed[0].equals("printConnections")) {
+                else if (inputParsed[0].equals("joinNodes")) {
+                    //this command take one port number for all ip's
+
+                    if (node1.getConnections().size() > node1.getMaxNeighbors() ) {
+                        System.out.println("Can't join: Max number of neighbors reached");
+                    }
+
+                    String[] ipParsed = inputParsed[1].split(" ");
+                    int neighborPort = Integer.parseInt(inputParsed[2]);
+                    for (String ip: ipParsed) {
+                        try {
+                            TimeUnit.SECONDS.sleep(1);
+                        } 
+                        catch (Exception e) {
+                            System.out.print(e);
+                        }
+                        Connection newCon = node1.connectToPeer(ip, neighborPort);
+                        node1.populateNeighbors(ip, neighborPort, 0, newCon);
+                    }
+                    
+                }
+
+                else if (inputParsed[0].equals("usage")) {
+                    printUsage();
+                }
+
+                else if (inputParsed[0].equals("printConnections")) {
                     System.out.println("numConnections: " + node1.getConnections().size() + " connections: " + node1.getConnections().values());
                 }
 
-                if (inputParsed[0].equals("userBalance")) {
+                else if (inputParsed[0].equals("userBalance")) {
                     String publicKey = getKeyAsString(inputParsed[1]);
                     System.out.println("Balance: " + node1.getUserBalance(publicKey));
                 }
 
-                if (inputParsed[0].equals("setStartOfDay")) {
-                     
-                    node1.setStartOfDay(inputParsed[1]); // should be formatted as "2015-08-04T10:11:30"
-                    System.out.println("start of day set!");
-                }
-
-                if (inputParsed[0].equals("printTransactions")) {
-                    ArrayList<String> currentBlock = node1.getCurrentBlock();
+                else if (inputParsed[0].equals("printTransactions")) {
+                    ArrayList<Transaction> currentBlock = node1.getCurrentBlock();
                     int size = currentBlock.size();
                     if (size == 0) {
                         System.out.println("No transactions made today");
                     }
-                    System.out.println("# transactions made today: " + size + " last transaction: " + currentBlock.get(size - 1).split("=-=-=")[0]);
+                    else {
+                        System.out.println("# transactions made today: " + size + ", last transaction: " + currentBlock.get(size - 1).toString());
+
+                    }
                 }
 
-                if (inputParsed[0].equals("makeTransaction")) {
+                else if (inputParsed[0].equals("makeTransaction")) {
                     String senderPublicKey;
                     String senderPrivateKey;
                     String recipientPublicKey;
@@ -134,23 +136,73 @@ public class Driver {
                         senderPrivateKey = getKeyAsString(inputParsed[2]);
                         recipientPublicKey = getKeyAsString(inputParsed[3]);
                         amount = inputParsed[4];
-                        Boolean success = node1.makeTransaction(senderPublicKey, senderPrivateKey, recipientPublicKey, amount);
-                        System.out.println("result of makeTransaction: " + success);
+                        node1.makeTransaction(senderPublicKey, senderPrivateKey, recipientPublicKey, amount);
+                        //System.out.println("result of makeTransaction: " + success);
                     }
                     catch (Exception e) {
                         System.out.println("couldn't do transaction: " + e);
+                        e.printStackTrace();
                     }
                     
                 }
 
-                if (inputParsed[0].equals("printBlockchain")) {
+                else if (inputParsed[0].equals("printBlockchain")) {
                     System.out.println(node1.printBlockChain());
                 }
-            }
-            catch (Exception e) {
-                System.out.println(e);
+
+                else if (inputParsed[0].equals("startMiner")) {
+
+                    Miner miner = new Miner(node1);
+                    miner.start();
+                }
+
+                else if (inputParsed[0].equals("startMiners")) {
+
+                    int num = Integer.parseInt(inputParsed[1]);
+                    for (int i = 0; i < num; i++) {
+                        Miner miner = new Miner(node1);
+                        miner.start();
+                    }
+                    
+                }
+
+                else if (inputParsed[0].equals("setDifficulty")) {
+
+                    node1.setDifficulty(Integer.parseInt(inputParsed[1]));
+
+                }
+
+
+                else if (inputParsed[0].equals("Test1")) {
+
+                    long start1 = System.currentTimeMillis();
+                    int num = Integer.parseInt(inputParsed[1]);
+                    for (int i = 0; i < 5; i++) {
+                        Test1 test = new Test1();
+                        test.source = node1;
+                        test.start = start1;
+                        test.num = num;
+                        test.start();
+                    }
+
+
+                }
+
+                else {
+                    System.out.println("No such command. Type 'usage' to get help.");
+                }
+
+
+                
 
             }
+            catch (Exception e) {
+                e.printStackTrace();
+                System.out.println(e);
+
+
+            }
+            
             
         }    
 
@@ -173,9 +225,40 @@ public class Driver {
         
     }
 
-   
-
+    public static void printUsage() {
+        InputStream input;
+        try {
+            input = new BufferedInputStream(new FileInputStream("usage.txt"));
+            byte[] buffer = new byte[10000];
+            for (int length = 0; (length = input.read(buffer)) != -1;) {
+                System.out.write(buffer, 0, length);
+            }
+            input.close();
+        } 
+        catch (Exception e) {
+            System.out.println(e);
+        }
     
+    }
+
+    public static String getIp() throws Exception {
+        URL whatismyip = new URL("http://checkip.amazonaws.com");
+        BufferedReader in = null;
+        try {
+            in = new BufferedReader(new InputStreamReader(
+                    whatismyip.openStream()));
+            String ip = in.readLine();
+            return ip;
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     
 }

@@ -1,4 +1,5 @@
 import java.net.*;
+
 import java.io.*;
 
 
@@ -10,12 +11,16 @@ public class Connection extends Thread{
     private DataOutputStream output = null;
 
     private Socket sock = null;
+
+    //the node on the machine that originated this connection instance
     private Node source = null;
 
+    //constructor 
     public Connection(Socket s, Node source) {
 
         sock = s;
         this.source = source;
+
     }
     
 
@@ -54,6 +59,7 @@ public class Connection extends Thread{
         //while the socket is open, not throwing file error, keep reading new lines, parsing. Else break, because connection has closed
         while (is_connected) {
             try {
+
                 message = input.readUTF();
                 parseMessage(message);
                 
@@ -127,14 +133,12 @@ public class Connection extends Thread{
      */
     public void parseMessage(String message) {
 
+        System.out.println(message);
+
         String[] parsedMessage = message.split("=-=-=");
 
         if (parsedMessage[0].equals("populateNeighbors")) {
 
-            System.out.println(parsedMessage[0]);
-            System.out.println(parsedMessage[1]);
-            System.out.println(parsedMessage[2]);
-            System.out.println(parsedMessage[3]);
             String ip = parsedMessage[1];
             int port = Integer.parseInt(parsedMessage[2]);
             int counter = Integer.parseInt(parsedMessage[3]);
@@ -142,63 +146,35 @@ public class Connection extends Thread{
             return;
         }
 
-        if (parsedMessage[0].equals("verifyTransaction")) {
+        //if message is a transaction message
+        if (parsedMessage[0].equals("transaction")) {
 
-            confirmVerification(source.verifyTransaction(message));
-            return;
-        }
+            Transaction t = new Transaction(parsedMessage[1]);
 
-        if (parsedMessage[0].equals("confirmVerification")) {
+            //verify the transaction was signed by the public key
+            if (source.verifyTransaction(t)) {
+                
+                if (source.addTransaction(t)) {
+                    //if successfully added the transaction to source node's list, blast it to neighbors, 
+                    source.blast(message, this);
 
-            if (parsedMessage[1].equals("true")) {
-                source.setNumNeighborsVerified(source.getNumNeighborsVerified() + 1);
-            }
-            else {
-                source.setNotVerifiedByNeighbor(true);
-            }
-            return;
-        }
-
-        if (parsedMessage[0].equals("blastTransaction")) {
-            //need to add some verification here
-            source.blastTransaction(parsedMessage[1], parsedMessage[2], parsedMessage[3], parsedMessage[4], this);
-            return;
-        }
-
-        if (parsedMessage[0].equals("MINED")) {
-
-            if (source.getMined() != true) {
-                source.setMined(true);
-                source.blastMined(this);
-                System.out.println("Someone mined");
+                }
 
             }
             return;
         }
         
+        //if we get this far without returning, must be a block message, split accordingly
         String[] parsedBlock = message.split("<><><><>");
+
         if(parsedBlock[0].equals("block")) {
-            if(source.isReceivedBlock()) {
-                return;
-            }
-            else {
-                source.setReceivedBlock(true);
-                source.blastBlock(message, this);
-                System.out.println("Received block with hash:" + parsedBlock[parsedBlock.length - 1]);
 
-            }
+            //handle block message
+            source.handleIncomingBlock(message, this);
+            
 
         }
 
-    }
-
-    public void confirmVerification(Boolean verified) {
-        if (verified) {
-            sendMessage("confirmVerification=-=-=true");
-        }
-        else {
-            sendMessage("confirmVerification=-=-=false");
-        }
     }
 
     /**
@@ -217,8 +193,11 @@ public class Connection extends Thread{
     public void handlePopulateNeighbors(String ip, int port, int counter) {
         System.out.println("here in connection handlePopulateNeighbors");
 
+        //check to see if some other node has sent you your own populate neighbors request
         Boolean isSelf = (ip.equals(source.getHostIp()));
+        Connection newCon = null;
 
+        //don't send populate neighbors request to self
         if (isSelf) {
 
             System.out.println("received own populate neighbors request...");
@@ -229,18 +208,25 @@ public class Connection extends Thread{
         //check if source node connections less than max
         if ((source.getConnections()).size() < source.getMaxNeighbors()) {
             
-            source.connectToPeer(ip, port);
+            //if so, connect to node sending populate neighbors request
+            newCon = source.connectToPeer(ip, port);
         } 
 
-        //check if counter less than max
+        //check if repeat counter less than max
         if (counter < MAX_DEGREES){
-            source.populateNeighbors(ip, port, ++counter);
+
+            //if repeat max not reached, broadcast the message again
+            source.populateNeighbors(ip, port, ++counter, newCon);
         }
 
         else {
             System.out.println("max degrees reached");
         }
 
+    }
+
+    public DataOutputStream getOutputStream() {
+        return this.output;
     }
 
 

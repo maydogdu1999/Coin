@@ -1,0 +1,19 @@
+
+-> joinNode--[ip]--[port] 
+Joins a new node to the network that has the given ip. The new node should already be running BowdoinCoin on the given port.
+            
+-> makeTransaction--[sender public key path]--[sender private key path]--[recipient public key path]--amount  
+Makes a transaction.
+
+-> userBalance--[user public key]
+Returns the balance of the given user key. If the user is new, he starts with a default balance of 100.0.
+
+-> printConnections
+Prints all existing connections' ip's of the node. 
+
+-> printTransactions
+Prints all pending transactions, those that are not added to the blockchain yet.
+
+-> printBlockchain
+Prints a summary of all blocks in the blockchain.
+
